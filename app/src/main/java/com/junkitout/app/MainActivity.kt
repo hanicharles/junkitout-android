@@ -38,6 +38,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             .put("amount", amountPaise)
             .put("prefill", JSONObject().put("contact", phone))
             .put("theme", JSONObject().put("color", "#14793A"))
+            .put("method", JSONObject().put("upi", true).put("card", true).put("netbanking", true).put("wallet", true))
+            .put("upi", JSONObject().put("flow", "intent"))
         runCatching { co.open(this, opts) }
             .onFailure { PaymentBus.onResult?.invoke(false, "", "", "", it.message ?: "Could not open Razorpay") }
     }
