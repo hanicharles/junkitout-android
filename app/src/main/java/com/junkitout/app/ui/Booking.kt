@@ -22,21 +22,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +65,6 @@ import com.junkitout.app.data.Address
 import com.junkitout.app.data.Api
 import com.junkitout.app.data.Booking
 import com.junkitout.app.data.Geo
-import com.junkitout.app.data.Place
 import com.junkitout.app.data.Result
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -114,7 +118,7 @@ fun rememberPayment(
 fun BookingScreen(
     initialService: String?, token: String, phone: String, area: String,
     startPayment: (String, Long, String) -> Unit,
-    onBack: () -> Unit, onDone: () -> Unit,
+    onBack: () -> Unit, onDone: () -> Unit, onAddNewAddress: () -> Unit = {}
 ) {
     var service by remember { mutableStateOf(initialService ?: SERVICES[0]) }
     var dayIdx by remember { mutableIntStateOf(0) }
@@ -130,7 +134,6 @@ fun BookingScreen(
     var selectedAddressId by remember { mutableStateOf("") }
     var showAddressPicker by remember { mutableStateOf(false) }
 
-    // Load saved default address if available
     LaunchedEffect(Unit) {
         (Api.addresses(token) as? Result.Ok)?.value?.let { list ->
             list.firstOrNull { it.isDefault }?.let { def ->
@@ -263,6 +266,10 @@ fun BookingScreen(
     if (showAddressPicker) {
         AddressSelectionModal(
             token = token,
+            onAddNewAddress = {
+                showAddressPicker = false
+                onAddNewAddress()
+            },
             onDismiss = { showAddressPicker = false },
             onAddressSelected = { addrId, addrText ->
                 selectedAddressId = addrId
@@ -274,125 +281,298 @@ fun BookingScreen(
 }
 
 // ───────────────────────── Address Selection Modal ─────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddressSelectionModal(
     token: String,
+    onAddNewAddress: () -> Unit,
     onDismiss: () -> Unit,
     onAddressSelected: (id: String, text: String) -> Unit
 ) {
     val ctx = LocalContext.current
     var addresses by remember { mutableStateOf<List<Address>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
-    var mode by remember { mutableIntStateOf(0) } // 0: Select Saved, 1: Current Location, 2: Manual
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedAddrId by remember { mutableStateOf("") }
+    var selectedAddrText by remember { mutableStateOf("") }
+    var busyGps by remember { mutableStateOf(false) }
+    var showManualForm by remember { mutableStateOf(false) }
+
     var house by remember { mutableStateOf("") }
     var street by remember { mutableStateOf("") }
     var landmark by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("Home") }
-    var busyLocation by remember { mutableStateOf(false) }
+
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        (Api.addresses(token) as? Result.Ok)?.value?.let { addresses = it }
+        (Api.addresses(token) as? Result.Ok)?.value?.let { list ->
+            addresses = list
+            list.firstOrNull { it.isDefault }?.let { def ->
+                selectedAddrId = def.id
+                selectedAddrText = "${def.type}: ${def.house}, ${def.street}"
+            } ?: list.firstOrNull()?.let { first ->
+                selectedAddrId = first.id
+                selectedAddrText = "${first.type}: ${first.house}, ${first.street}"
+            }
+        }
         loading = false
     }
 
-    AlertDialog(
+    fun detectGpsAndConfirm() {
+        busyGps = true
+        scope.launch {
+            val fix = Geo.currentFix(ctx)
+            val place = if (fix != null) Geo.reverse(ctx, fix.latitude, fix.longitude) else null
+            busyGps = false
+            if (place != null) {
+                onAddressSelected("", "${place.area}, ${place.city}")
+            } else {
+                showManualForm = true
+            }
+        }
+    }
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Choose Pickup Address", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-        text = {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (mode == 0) Color(0xFFEAF6EC) else Color.White,
-                        border = BorderStroke(1.dp, if (mode == 0) JColors.Primary else JColors.Border),
-                        modifier = Modifier.weight(1f).clickable { mode = 0 }
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Choose Pickup Address", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = JColors.Text)
+                    Spacer(Modifier.height(2.dp))
+                    Text("Select from saved addresses or use your current location or enter manually", fontSize = 12.sp, color = JColors.Subtle, lineHeight = 16.sp)
+                }
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.size(34.dp).clip(CircleShape).background(Color(0xFFEAF6EC)).clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Close, "Close", tint = JColors.Primary, modifier = Modifier.size(18.dp))
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Top Mode Selection Pills
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (selectedTab == 0 && !showManualForm) JColors.Primary else Color.White,
+                    border = BorderStroke(1.dp, if (selectedTab == 0 && !showManualForm) JColors.Primary else JColors.Border),
+                    modifier = Modifier.weight(1f).clickable { selectedTab = 0; showManualForm = false }
+                ) {
+                    Row(
+                        Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Saved", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
-                            color = if (mode == 0) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (mode == 1) Color(0xFFEAF6EC) else Color.White,
-                        border = BorderStroke(1.dp, if (mode == 1) JColors.Primary else JColors.Border),
-                        modifier = Modifier.weight(1f).clickable { mode = 1 }
-                    ) {
-                        Text("GPS", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
-                            color = if (mode == 1) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (mode == 2) Color(0xFFEAF6EC) else Color.White,
-                        border = BorderStroke(1.dp, if (mode == 2) JColors.Primary else JColors.Border),
-                        modifier = Modifier.weight(1f).clickable { mode = 2 }
-                    ) {
-                        Text("Manual", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
-                            color = if (mode == 2) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
+                        Icon(Icons.Filled.Home, null, tint = if (selectedTab == 0 && !showManualForm) Color.White else JColors.Primary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Saved", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (selectedTab == 0 && !showManualForm) Color.White else JColors.Text)
                     }
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (selectedTab == 1 && !showManualForm) JColors.Primary else Color.White,
+                    border = BorderStroke(1.dp, if (selectedTab == 1 && !showManualForm) JColors.Primary else JColors.Border),
+                    modifier = Modifier.weight(1f).clickable { selectedTab = 1; showManualForm = false; detectGpsAndConfirm() }
+                ) {
+                    Row(
+                        Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.MyLocation, null, tint = if (selectedTab == 1 && !showManualForm) Color.White else JColors.Text, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Current Location", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (selectedTab == 1 && !showManualForm) Color.White else JColors.Text)
+                    }
+                }
 
-                when (mode) {
-                    0 -> { // Saved addresses
-                        if (loading) CircularProgressIndicator(color = JColors.Primary, modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp))
-                        else if (addresses.isEmpty()) Text("No saved addresses. Choose GPS or Manual to enter.", fontSize = 13.sp, color = JColors.Subtle)
-                        else {
-                            addresses.forEach { a ->
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFFF6FAF6),
-                                    border = BorderStroke(1.dp, JColors.Border),
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable {
-                                        onAddressSelected(a.id, "${a.type}: ${a.house}, ${a.street}")
-                                    }
-                                ) {
-                                    Column(Modifier.padding(10.dp)) {
-                                        Text("${a.type}${if (a.isDefault) " [DEFAULT]" else ""}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = JColors.Primary)
-                                        Text("${a.house}, ${a.street}", fontSize = 12.sp, color = JColors.Text)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    1 -> { // Use GPS
-                        if (busyLocation) Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(color = JColors.Primary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Detecting current GPS location...", fontSize = 13.sp, color = JColors.Subtle)
-                        } else {
-                            PrimaryButton("Detect & Use Current GPS", arrow = false) {
-                                busyLocation = true
-                                scope.launch {
-                                    val fix = Geo.currentFix(ctx)
-                                    val place = if (fix != null) Geo.reverse(ctx, fix.latitude, fix.longitude) else null
-                                    busyLocation = false
-                                    if (place != null) {
-                                        onAddressSelected("", "${place.area}, ${place.city}")
-                                    } else {
-                                        mode = 2 // Fallback to manual
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    2 -> { // Manual
-                        OutlinedTextField(value = house, onValueChange = { house = it }, label = { Text("House / Building No.") }, singleLine = true)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(value = street, onValueChange = { street = it }, label = { Text("Street / Area") }, singleLine = true)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(value = landmark, onValueChange = { landmark = it }, label = { Text("Landmark (Optional)") }, singleLine = true)
-                        Spacer(Modifier.height(12.dp))
-                        PrimaryButton("Use This Address", arrow = false, enabled = house.isNotBlank() && street.isNotBlank()) {
-                            onAddressSelected("", "$house, $street")
-                        }
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (showManualForm) JColors.Primary else Color.White,
+                    border = BorderStroke(1.dp, if (showManualForm) JColors.Primary else JColors.Border),
+                    modifier = Modifier.weight(1f).clickable { selectedTab = 2; showManualForm = true }
+                ) {
+                    Row(
+                        Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.Edit, null, tint = if (showManualForm) Color.White else JColors.Text, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Add Manually", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (showManualForm) Color.White else JColors.Text)
                     }
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
+
+            Spacer(Modifier.height(20.dp))
+
+            if (showManualForm) {
+                Text("Enter Address Details", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = JColors.Text)
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(value = house, onValueChange = { house = it }, label = { Text("House / Building No. *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value = street, onValueChange = { street = it }, label = { Text("Street / Area *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value = landmark, onValueChange = { landmark = it }, label = { Text("Landmark (Optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                PrimaryButton("Use This Address", arrow = false, enabled = house.isNotBlank() && street.isNotBlank()) {
+                    onAddressSelected("", "$house, $street")
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Saved Addresses", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text, modifier = Modifier.weight(1f))
+                    Row(Modifier.clickable(onClick = onAddNewAddress), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.AddCircle, null, tint = JColors.Primary, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Add New Address", color = JColors.Primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                if (loading) {
+                    Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = JColors.Primary, modifier = Modifier.size(28.dp))
+                    }
+                } else if (addresses.isEmpty()) {
+                    Text("No saved addresses yet.", fontSize = 13.sp, color = JColors.Subtle, modifier = Modifier.padding(vertical = 12.dp))
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        addresses.forEach { a ->
+                            val isSelected = selectedAddrId == a.id || (selectedAddrId.isEmpty() && selectedAddrText.contains(a.house))
+                            val iconBg = when (a.type) {
+                                "Work" -> Color(0xFFE8F1FD)
+                                "Other" -> Color(0xFFFDE8E8)
+                                else -> Color(0xFFEAF6EC)
+                            }
+                            val iconTint = when (a.type) {
+                                "Work" -> Color(0xFF2F80ED)
+                                "Other" -> JColors.Red
+                                else -> JColors.Primary
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White,
+                                border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) JColors.Primary else JColors.Border),
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    selectedAddrId = a.id
+                                    selectedAddrText = "${a.type}: ${a.house}, ${a.street}"
+                                }
+                            ) {
+                                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+                                    Box(Modifier.size(38.dp).clip(CircleShape).background(iconBg), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            when (a.type) {
+                                                "Work" -> Icons.Filled.Domain
+                                                "Other" -> Icons.Filled.LocationOn
+                                                else -> Icons.Filled.Home
+                                            },
+                                            null, tint = iconTint, modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(a.type, fontWeight = FontWeight.Bold, color = JColors.Text, fontSize = 15.sp)
+                                            if (a.isDefault) {
+                                                Spacer(Modifier.width(6.dp))
+                                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFD5EDD8)) {
+                                                    Text("Default", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = JColors.Primary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("${a.house}, ${a.street}", fontSize = 12.sp, color = JColors.Subtle, lineHeight = 16.sp)
+                                        if (a.name.isNotBlank() || a.phone.isNotBlank()) {
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(listOf(a.name, a.phone).filter { it.isNotBlank() }.joinToString(" • "), fontSize = 12.sp, color = JColors.Subtle)
+                                        }
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = {
+                                            selectedAddrId = a.id
+                                            selectedAddrText = "${a.type}: ${a.house}, ${a.street}"
+                                        },
+                                        colors = RadioButtonDefaults.colors(selectedColor = JColors.Primary)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // OR Divider
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f).height(1.dp).background(JColors.Border))
+                    Text("OR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = JColors.Subtle, modifier = Modifier.padding(horizontal = 12.dp))
+                    Box(Modifier.weight(1f).height(1.dp).background(JColors.Border))
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // Bottom Quick Action Cards
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFEAF6EC),
+                        modifier = Modifier.weight(1f).clickable { detectGpsAndConfirm() }
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(32.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.MyLocation, null, tint = JColors.Primary, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Use Current Location", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = JColors.Text)
+                                Text("Get your live location using GPS", fontSize = 10.sp, color = JColors.Subtle)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle, modifier = Modifier.size(16.dp))
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFEDF4FC),
+                        modifier = Modifier.weight(1f).clickable { showManualForm = true }
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(32.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.Edit, null, tint = Color(0xFF2F80ED), modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Enter Address Manually", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = JColors.Text)
+                                Text("Type your address details", fontSize = 10.sp, color = JColors.Subtle)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                PrimaryButton(if (busyGps) "Detecting Location..." else "Confirm Address", arrow = true, enabled = selectedAddrText.isNotBlank() && !busyGps) {
+                    onAddressSelected(selectedAddrId, selectedAddrText)
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
 }
 
 @Composable private fun Label(t: String) { Text(t, fontSize = 12.sp, color = JColors.Subtle, modifier = Modifier.padding(bottom = 8.dp)) }
