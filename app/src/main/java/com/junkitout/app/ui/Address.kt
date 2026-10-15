@@ -69,15 +69,30 @@ fun AddressManagerScreen(
     token: String,
     onBack: () -> Unit,
     onAddNew: () -> Unit,
+    onUseLiveLocation: (Place) -> Unit = {},
     onEdit: (Address) -> Unit,
     onSelectAddress: ((Address) -> Unit)? = null
 ) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var loading by remember { mutableStateOf(true) }
     var addresses by remember { mutableStateOf<List<Address>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<Address?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    var busyGps by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    fun detectGpsAndAdd() {
+        busyGps = true
+        scope.launch {
+            val fix = com.junkitout.app.data.Geo.currentFix(ctx)
+            val p = if (fix != null) com.junkitout.app.data.Geo.reverse(ctx, fix.latitude, fix.longitude)
+                ?: Place("Current location", "Bengaluru", "", fix.latitude, fix.longitude)
+            else Place("Bengaluru", "Bengaluru", "", 0.0, 0.0)
+            busyGps = false
+            onUseLiveLocation(p)
+        }
+    }
 
     LaunchedEffect(reload) {
         loading = true
@@ -134,8 +149,10 @@ fun AddressManagerScreen(
                     Spacer(Modifier.height(12.dp))
                     Text("No saved addresses yet", fontWeight = FontWeight.Bold, color = JColors.Text, fontSize = 16.sp)
                     Text("Add an address to easily schedule pickups.", color = JColors.Subtle, fontSize = 13.sp)
-                    Spacer(Modifier.height(20.dp))
-                    PrimaryButton("+ Add New Address", arrow = false, onClick = onAddNew)
+                    Spacer(Modifier.height(24.dp))
+                    PrimaryButton(if (busyGps) "Detecting Location..." else "📍 Use Live GPS Location", arrow = false, enabled = !busyGps, onClick = ::detectGpsAndAdd)
+                    Spacer(Modifier.height(10.dp))
+                    OutlineButton("+ Enter Address Manually", onClick = onAddNew)
                 }
                 else -> {
                     LazyColumn(
@@ -158,7 +175,9 @@ fun AddressManagerScreen(
                         }
                     }
                     Spacer(Modifier.height(12.dp))
-                    PrimaryButton("+ Add New Address", arrow = false, onClick = onAddNew)
+                    PrimaryButton(if (busyGps) "Detecting Location..." else "📍 Use Live GPS Location", arrow = false, enabled = !busyGps, onClick = ::detectGpsAndAdd)
+                    Spacer(Modifier.height(8.dp))
+                    OutlineButton("+ Enter Address Manually", onClick = onAddNew)
                 }
             }
         }
