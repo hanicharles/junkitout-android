@@ -163,11 +163,12 @@ app.post('/api/addresses', auth, wrap(async (req, res) => {
     await db.query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.uid]).catch(() => {});
   }
 
+  const id = crypto.randomUUID();
   const { rows } = await db.query(
-    `INSERT INTO addresses(user_id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    `INSERT INTO addresses(id, user_id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng`,
-    [req.uid, String(b.name || '').trim(), String(b.phone || '').trim(), house, street, String(b.landmark || '').trim(),
+    [id, req.uid, String(b.name || '').trim(), String(b.phone || '').trim(), house, street, String(b.landmark || '').trim(),
      String(b.city || 'Bengaluru').trim(), String(b.state || 'Karnataka').trim(), type, String(b.pincode || '').trim(), isDefault, num(b.lat), num(b.lng)]
   );
   res.status(201).json({ address: addressOut(rows[0]) });
@@ -226,10 +227,11 @@ app.post('/api/bookings', auth, wrap(async (req, res) => {
   if (!Number.isInteger(kg) || kg < 1 || kg > 200) return res.status(400).json({ error: 'Weight must be 1-200 kg' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: 'Choose a valid pickup date' });
+  const id = crypto.randomUUID();
   const { rows } = await db.query(
-    `INSERT INTO bookings(user_id, service, date, slot, estimated_kg, amount) VALUES($1,$2,$3,$4,$5,$6)
+    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount) VALUES($1,$2,$3,$4,$5,$6,$7)
      RETURNING id, service, date, slot, status, amount, paid`,
-    [req.uid, service, date, slot, kg, amountFor(service, kg)]);
+    [id, req.uid, service, date, slot, kg, amountFor(service, kg)]);
   res.status(201).json({ booking: bookingOut(rows[0]) });
 }));
 
@@ -304,6 +306,7 @@ app.post('/api/payments/verify', auth, wrap(async (req, res) => {
     memDb.public.registerFunction({
       name: 'gen_random_uuid',
       returns: DataType.uuid,
+      impure: true,
       implementation: () => crypto.randomUUID(),
     });
     const { Pool: MemPool } = memDb.adapters.createPg();
