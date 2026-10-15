@@ -140,8 +140,17 @@ object Api {
         }
 
     // ── Bookings & payments ──
-    suspend fun createBooking(service: String, date: String, slot: String, kg: Int, token: String): Result<Booking> {
-        val body = JSONObject().put("service", service).put("date", date).put("slot", slot).put("estimatedKg", kg)
+    suspend fun createBooking(
+        service: String, date: String, slot: String, kg: Int, token: String,
+        addressId: String = "", addressText: String = ""
+    ): Result<Booking> {
+        val body = JSONObject()
+            .put("service", service)
+            .put("date", date)
+            .put("slot", slot)
+            .put("estimatedKg", kg)
+            .put("addressId", addressId)
+            .put("addressText", addressText)
         return when (val r = call("POST", "/api/bookings", token, body)) {
             is Result.Ok -> Result.Ok((r.value.optJSONObject("booking") ?: r.value).toBooking())
             is Result.Err -> r
@@ -197,6 +206,7 @@ object Api {
     private fun JSONObject.toBooking() = Booking(
         optString("id"), optString("service"), optString("date"), optString("slot"),
         optString("status", "Scheduled"), optDouble("amount", 0.0), optBoolean("paid", false),
+        optString("addressText")
     )
     private fun <T> JSONArray?.toList(f: (JSONObject) -> T): List<T> =
         if (this == null) emptyList() else (0 until length()).map { f(getJSONObject(it)) }

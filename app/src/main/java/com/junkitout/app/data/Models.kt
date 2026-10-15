@@ -21,6 +21,7 @@ data class Address(
 data class Booking(
     val id: String, val service: String, val date: String, val slot: String,
     val status: String, val amount: Double, val paid: Boolean,
+    val addressText: String = "",
 )
 
 data class PaymentOrder(val orderId: String, val amountPaise: Long)

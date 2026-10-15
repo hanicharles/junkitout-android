@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   service text NOT NULL, date text NOT NULL, slot text NOT NULL,
   estimated_kg integer NOT NULL, amount numeric(10,2) NOT NULL,
   status text NOT NULL DEFAULT 'Scheduled', paid boolean NOT NULL DEFAULT false,
+  address_text text NOT NULL DEFAULT '',
+  address_id uuid,
   razorpay_order_id text, razorpay_payment_id text,
   created_at timestamptz NOT NULL DEFAULT now()
 );

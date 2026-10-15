@@ -217,10 +217,10 @@ app.put('/api/addresses/:id/default', auth, wrap(async (req, res) => {
 
 // ── Bookings ──
 const bookingOut = (r) => ({ id: r.id, service: r.service, date: r.date, slot: r.slot, status: r.status,
-  amount: Number(r.amount), paid: r.paid });
+  amount: Number(r.amount), paid: r.paid, addressText: r.address_text || '' });
 
 app.post('/api/bookings', auth, wrap(async (req, res) => {
-  const { service, date, slot } = req.body;
+  const { service, date, slot, addressId, addressText } = req.body;
   const kg = Number(req.body.estimatedKg);
   if (!RATES[service]) return res.status(400).json({ error: 'Unknown service' });
   if (!SLOTS.includes(slot)) return res.status(400).json({ error: 'Invalid time slot' });
@@ -229,15 +229,15 @@ app.post('/api/bookings', auth, wrap(async (req, res) => {
     return res.status(400).json({ error: 'Choose a valid pickup date' });
   const id = crypto.randomUUID();
   const { rows } = await db.query(
-    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount) VALUES($1,$2,$3,$4,$5,$6,$7)
-     RETURNING id, service, date, slot, status, amount, paid`,
-    [id, req.uid, service, date, slot, kg, amountFor(service, kg)]);
+    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount, address_text, address_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING id, service, date, slot, status, amount, paid, address_text`,
+    [id, req.uid, service, date, slot, kg, amountFor(service, kg), String(addressText || '').trim(), addressId || null]);
   res.status(201).json({ booking: bookingOut(rows[0]) });
 }));
 
 app.get('/api/bookings', auth, wrap(async (req, res) => {
   const { rows } = await db.query(
-    'SELECT id, service, date, slot, status, amount, paid FROM bookings WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
+    'SELECT id, service, date, slot, status, amount, paid, address_text FROM bookings WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
   res.json({ bookings: rows.map(bookingOut) });
 }));
 

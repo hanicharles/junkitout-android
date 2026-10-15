@@ -3,6 +3,7 @@ package com.junkitout.app.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,19 +15,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -40,13 +50,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.junkitout.app.PaymentBus
+import com.junkitout.app.data.Address
 import com.junkitout.app.data.Api
 import com.junkitout.app.data.Booking
+import com.junkitout.app.data.Geo
+import com.junkitout.app.data.Place
 import com.junkitout.app.data.Result
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -112,6 +126,23 @@ fun BookingScreen(
     var info by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    var selectedAddressText by remember { mutableStateOf(area.ifBlank { "Select pickup address" }) }
+    var selectedAddressId by remember { mutableStateOf("") }
+    var showAddressPicker by remember { mutableStateOf(false) }
+
+    // Load saved default address if available
+    LaunchedEffect(Unit) {
+        (Api.addresses(token) as? Result.Ok)?.value?.let { list ->
+            list.firstOrNull { it.isDefault }?.let { def ->
+                selectedAddressId = def.id
+                selectedAddressText = "${def.type}: ${def.house}, ${def.street}"
+            } ?: list.firstOrNull()?.let { first ->
+                selectedAddressId = first.id
+                selectedAddressText = "${first.type}: ${first.house}, ${first.street}"
+            }
+        }
+    }
+
     val days = remember {
         val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val label = SimpleDateFormat("EEE d MMM", Locale.getDefault())
@@ -127,26 +158,54 @@ fun BookingScreen(
             BackButton(onBack)
             Spacer(Modifier.height(14.dp))
             Text("Book a Pickup", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = JColors.Text)
-            Text("Pickup from $area", color = JColors.Subtle, fontSize = 13.sp)
 
             if (booked != null) {
                 val b = booked!!
-                Spacer(Modifier.height(30.dp))
-                Box(Modifier.align(Alignment.CenterHorizontally).size(84.dp).clip(CircleShape).background(JColors.Primary), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(48.dp))
+                Spacer(Modifier.height(28.dp))
+                Box(Modifier.align(Alignment.CenterHorizontally).size(80.dp).clip(CircleShape).background(if (b.paid) JColors.Primary else Color(0xFFE59A2E)), contentAlignment = Alignment.Center) {
+                    Icon(if (b.paid) Icons.Filled.Check else Icons.Filled.Schedule, null, tint = Color.White, modifier = Modifier.size(44.dp))
                 }
                 Spacer(Modifier.height(16.dp))
-                Text("Pickup Scheduled!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JColors.Text,
+                Text(if (b.paid) "Pickup Confirmed!" else "Payment Pending", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JColors.Text,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 Spacer(Modifier.height(6.dp))
                 Text("${b.service}\n${b.date} - ${b.slot}\nEstimated ₹%.0f".format(b.amount), color = JColors.Subtle,
                     fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                Text("Address: $selectedAddressText", color = JColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+
                 info?.let { Spacer(Modifier.height(10.dp)); Text(it, color = JColors.Red, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+
                 Spacer(Modifier.height(24.dp))
-                PrimaryButton("Pay ₹%.0f now".format(b.amount), arrow = false) { info = null; pay(b) }
-                Spacer(Modifier.height(10.dp))
-                OutlinedChip("Pay at pickup", true, Modifier.fillMaxWidth()) { onDone() }
+                if (!b.paid) {
+                    PrimaryButton("Pay ₹%.0f Now".format(b.amount), arrow = false) { info = null; pay(b) }
+                } else {
+                    PrimaryButton("View My Orders", arrow = false, onClick = onDone)
+                }
                 return@Column
+            }
+
+            // Pickup Address Card Section
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = JColors.Light,
+                border = BorderStroke(1.dp, JColors.Border),
+                modifier = Modifier.fillMaxWidth().clickable { showAddressPicker = true }
+            ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(38.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.LocationOn, null, tint = JColors.Primary, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Pickup Address", fontSize = 11.sp, color = JColors.Subtle, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(2.dp))
+                        Text(selectedAddressText, fontSize = 14.sp, color = JColors.Text, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text("Change", color = JColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(Modifier.height(18.dp))
@@ -184,21 +243,159 @@ fun BookingScreen(
             }
             Spacer(Modifier.height(22.dp))
             error?.let { Text(it, color = JColors.Red, fontSize = 13.sp); Spacer(Modifier.height(8.dp)) }
-            PrimaryButton(if (busy) "Booking..." else "Confirm Booking", arrow = false, enabled = !busy) {
+            PrimaryButton(if (busy) "Processing..." else "Proceed to Payment", arrow = true, enabled = !busy) {
                 busy = true; error = null
                 scope.launch {
-                    when (val r = Api.createBooking(service, days[dayIdx].first, slot, kg, token)) {
-                        is Result.Ok -> { busy = false; booked = r.value.copy(date = days[dayIdx].second, slot = slot) }
+                    when (val r = Api.createBooking(service, days[dayIdx].first, slot, kg, token, selectedAddressId, selectedAddressText)) {
+                        is Result.Ok -> {
+                            busy = false
+                            val b = r.value.copy(date = days[dayIdx].second, slot = slot, addressText = selectedAddressText)
+                            booked = b
+                            pay(b)
+                        }
                         is Result.Err -> { busy = false; error = r.message }
                     }
                 }
             }
         }
     }
+
+    if (showAddressPicker) {
+        AddressSelectionModal(
+            token = token,
+            onDismiss = { showAddressPicker = false },
+            onAddressSelected = { addrId, addrText ->
+                selectedAddressId = addrId
+                selectedAddressText = addrText
+                showAddressPicker = false
+            }
+        )
+    }
+}
+
+// ───────────────────────── Address Selection Modal ─────────────────────────
+@Composable
+private fun AddressSelectionModal(
+    token: String,
+    onDismiss: () -> Unit,
+    onAddressSelected: (id: String, text: String) -> Unit
+) {
+    val ctx = LocalContext.current
+    var addresses by remember { mutableStateOf<List<Address>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var mode by remember { mutableIntStateOf(0) } // 0: Select Saved, 1: Current Location, 2: Manual
+    var house by remember { mutableStateOf("") }
+    var street by remember { mutableStateOf("") }
+    var landmark by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("Home") }
+    var busyLocation by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        (Api.addresses(token) as? Result.Ok)?.value?.let { addresses = it }
+        loading = false
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose Pickup Address", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+        text = {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (mode == 0) Color(0xFFEAF6EC) else Color.White,
+                        border = BorderStroke(1.dp, if (mode == 0) JColors.Primary else JColors.Border),
+                        modifier = Modifier.weight(1f).clickable { mode = 0 }
+                    ) {
+                        Text("Saved", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
+                            color = if (mode == 0) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (mode == 1) Color(0xFFEAF6EC) else Color.White,
+                        border = BorderStroke(1.dp, if (mode == 1) JColors.Primary else JColors.Border),
+                        modifier = Modifier.weight(1f).clickable { mode = 1 }
+                    ) {
+                        Text("GPS", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
+                            color = if (mode == 1) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (mode == 2) Color(0xFFEAF6EC) else Color.White,
+                        border = BorderStroke(1.dp, if (mode == 2) JColors.Primary else JColors.Border),
+                        modifier = Modifier.weight(1f).clickable { mode = 2 }
+                    ) {
+                        Text("Manual", fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
+                            color = if (mode == 2) JColors.Primary else JColors.Text, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                when (mode) {
+                    0 -> { // Saved addresses
+                        if (loading) CircularProgressIndicator(color = JColors.Primary, modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp))
+                        else if (addresses.isEmpty()) Text("No saved addresses. Choose GPS or Manual to enter.", fontSize = 13.sp, color = JColors.Subtle)
+                        else {
+                            addresses.forEach { a ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF6FAF6),
+                                    border = BorderStroke(1.dp, JColors.Border),
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable {
+                                        onAddressSelected(a.id, "${a.type}: ${a.house}, ${a.street}")
+                                    }
+                                ) {
+                                    Column(Modifier.padding(10.dp)) {
+                                        Text("${a.type}${if (a.isDefault) " [DEFAULT]" else ""}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = JColors.Primary)
+                                        Text("${a.house}, ${a.street}", fontSize = 12.sp, color = JColors.Text)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    1 -> { // Use GPS
+                        if (busyLocation) Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(color = JColors.Primary, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Detecting current GPS location...", fontSize = 13.sp, color = JColors.Subtle)
+                        } else {
+                            PrimaryButton("Detect & Use Current GPS", arrow = false) {
+                                busyLocation = true
+                                scope.launch {
+                                    val fix = Geo.currentFix(ctx)
+                                    val place = if (fix != null) Geo.reverse(ctx, fix.latitude, fix.longitude) else null
+                                    busyLocation = false
+                                    if (place != null) {
+                                        onAddressSelected("", "${place.area}, ${place.city}")
+                                    } else {
+                                        mode = 2 // Fallback to manual
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    2 -> { // Manual
+                        OutlinedTextField(value = house, onValueChange = { house = it }, label = { Text("House / Building No.") }, singleLine = true)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(value = street, onValueChange = { street = it }, label = { Text("Street / Area") }, singleLine = true)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(value = landmark, onValueChange = { landmark = it }, label = { Text("Landmark (Optional)") }, singleLine = true)
+                        Spacer(Modifier.height(12.dp))
+                        PrimaryButton("Use This Address", arrow = false, enabled = house.isNotBlank() && street.isNotBlank()) {
+                            onAddressSelected("", "$house, $street")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable private fun Label(t: String) { Text(t, fontSize = 12.sp, color = JColors.Subtle, modifier = Modifier.padding(bottom = 8.dp)) }
-
 
 @Composable
 private fun OutlinedChip(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
@@ -312,6 +509,10 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
                             }
                             Spacer(Modifier.height(4.dp))
                             Text("${b.date} • ${b.slot}".trim(), color = JColors.Subtle, fontSize = 13.sp)
+                            if (b.addressText.isNotBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text("📍 ${b.addressText}", color = JColors.Subtle, fontSize = 12.sp)
+                            }
                             Spacer(Modifier.height(10.dp))
                             Box(Modifier.fillMaxWidth().height(1.dp).background(JColors.Border.copy(alpha = 0.6f)))
                             Spacer(Modifier.height(10.dp))
