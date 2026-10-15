@@ -89,6 +89,7 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 onBack = { nav.popBackStack() },
                 onAddNew = { nav.navigate("address") },
                 onUseLiveLocation = { p -> place = p; nav.navigate("address") },
+                onSelectOnMap = { nav.navigate("location") },
                 onEdit = { nav.navigate("address") }
             )
         }
