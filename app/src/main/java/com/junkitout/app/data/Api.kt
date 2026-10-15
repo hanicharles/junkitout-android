@@ -108,6 +108,18 @@ object Api {
             is Result.Err -> r
         }
 
+    suspend fun cancelBooking(bookingId: String, token: String): Result<Booking> =
+        when (val r = call("PUT", "/api/bookings/$bookingId/cancel", token)) {
+            is Result.Ok -> Result.Ok((r.value.optJSONObject("booking") ?: r.value).toBooking())
+            is Result.Err -> r
+        }
+
+    suspend fun updateBookingStatus(bookingId: String, status: String, token: String): Result<Booking> =
+        when (val r = call("PUT", "/api/bookings/$bookingId/status", token, JSONObject().put("status", status))) {
+            is Result.Ok -> Result.Ok((r.value.optJSONObject("booking") ?: r.value).toBooking())
+            is Result.Err -> r
+        }
+
     /** Backend creates the Razorpay order with the SECRET key; the app only receives the order id. */
     suspend fun createPaymentOrder(bookingId: String, token: String): Result<PaymentOrder> =
         when (val r = call("POST", "/api/payments/create-order", token, JSONObject().put("bookingId", bookingId))) {

@@ -69,8 +69,12 @@ fun rememberPayment(
         val id = pending
         PaymentBus.onResult = { ok, orderId, paymentId, signature, msg ->
             if (id != null) {
-                if (!ok) onDone(false, msg)
-                else scope.launch {
+                if (!ok) {
+                    scope.launch {
+                        Api.updateBookingStatus(id, "Payment Cancelled", token)
+                        onDone(false, if (msg.contains("{")) "Payment was cancelled" else msg)
+                    }
+                } else scope.launch {
                     when (val r = Api.verifyPayment(id, orderId, paymentId, signature, token)) {
                         is Result.Ok -> onDone(true, "Payment successful")
                         is Result.Err -> onDone(false, "Paid, but verification failed: ${r.message}")
@@ -224,6 +228,9 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
     var list by remember { mutableStateOf<List<Booking>>(emptyList()) }
     var reload by remember { mutableIntStateOf(0) }
     var info by remember { mutableStateOf<String?>(null) }
+    var filterTab by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(reload) {
         loading = true
         when (val r = Api.bookings(token)) {
@@ -232,13 +239,50 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
         }
         loading = false
     }
-    val pay = rememberPayment(token, phone, startPayment) { ok, msg -> info = msg; if (ok) reload++ }
-    val shown = if (walletMode) list.filter { it.paid } else list
+    val pay = rememberPayment(token, phone, startPayment) { _, msg -> info = msg; reload++ }
+
+    val rawList = if (walletMode) list.filter { it.paid } else list
+    val shown = when (filterTab) {
+        1 -> rawList.filter { !it.paid && it.status != "Cancelled" }
+        2 -> rawList.filter { it.paid }
+        3 -> rawList.filter { it.status == "Cancelled" || it.status == "Payment Cancelled" }
+        else -> rawList
+    }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(if (walletMode) "Wallet & Payments" else "My Orders", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = JColors.Text)
-        if (walletMode) Text("Total paid: ₹%.0f".format(shown.sumOf { it.amount }), color = JColors.Subtle, fontSize = 13.sp)
-        info?.let { Text(it, color = JColors.Primary, fontSize = 13.sp) }
+        if (walletMode) Text("Total paid: ₹%.0f".format(rawList.sumOf { it.amount }), color = JColors.Subtle, fontSize = 13.sp)
+
+        info?.let {
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = JColors.Light,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(it, color = JColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(10.dp))
+            }
+        }
+
+        if (!walletMode && list.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val filterLabels = listOf("All", "Upcoming", "Paid", "Cancelled")
+                filterLabels.forEachIndexed { idx, label ->
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (filterTab == idx) Color(0xFFEAF6EC) else Color.White,
+                        border = BorderStroke(if (filterTab == idx) 1.5.dp else 1.dp, if (filterTab == idx) JColors.Primary else JColors.Border),
+                        modifier = Modifier.clickable { filterTab = idx }
+                    ) {
+                        Text(label, fontSize = 12.sp, fontWeight = if (filterTab == idx) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (filterTab == idx) JColors.Primary else JColors.Text,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
         when {
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = JColors.Primary) }
@@ -247,24 +291,76 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
                 PrimaryButton("Retry", arrow = false) { reload++ }
             }
             shown.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(if (walletMode) "No payments yet" else "No orders yet. Tap Book to schedule a pickup.", color = JColors.Subtle)
+                Text(
+                    if (walletMode) "No payments yet"
+                    else when (filterTab) {
+                        1 -> "No upcoming orders"
+                        2 -> "No paid orders yet"
+                        3 -> "No cancelled orders"
+                        else -> "No orders yet. Tap Book to schedule a pickup."
+                    },
+                    color = JColors.Subtle
+                )
             }
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(shown) { b ->
                     Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp)) {
-                            Row {
-                                Text(b.service, fontWeight = FontWeight.SemiBold, color = JColors.Text, modifier = Modifier.weight(1f))
-                                Text("₹%.0f".format(b.amount), fontWeight = FontWeight.Bold, color = JColors.Primary)
-                            }
-                            Text("${b.date} ${b.slot}".trim(), color = JColors.Subtle, fontSize = 12.sp)
-                            Spacer(Modifier.height(6.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(if (b.paid) "Paid" else b.status, fontSize = 12.sp,
-                                    color = if (b.paid) JColors.Primary else JColors.Subtle, modifier = Modifier.weight(1f))
-                                if (!b.paid)
-                                    Text("Pay now", color = JColors.Primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
-                                        modifier = Modifier.clickable { info = null; pay(b) })
+                                Text(b.service, fontWeight = FontWeight.Bold, color = JColors.Text, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                                Text("₹%.0f".format(b.amount), fontWeight = FontWeight.Bold, color = JColors.Primary, fontSize = 16.sp)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text("${b.date} • ${b.slot}".trim(), color = JColors.Subtle, fontSize = 13.sp)
+                            Spacer(Modifier.height(10.dp))
+                            Box(Modifier.fillMaxWidth().height(1.dp).background(JColors.Border.copy(alpha = 0.6f)))
+                            Spacer(Modifier.height(10.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val statusText = when {
+                                    b.paid -> "Paid Successfully"
+                                    b.status == "Cancelled" -> "Cancelled"
+                                    b.status == "Payment Cancelled" -> "Payment Cancelled"
+                                    else -> b.status
+                                }
+                                val statusColor = when {
+                                    b.paid -> JColors.Primary
+                                    b.status == "Cancelled" || b.status == "Payment Cancelled" -> JColors.Red
+                                    else -> Color(0xFF2F80ED)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = statusColor.copy(alpha = 0.12f),
+                                ) {
+                                    Text(statusText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = statusColor,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                }
+
+                                Spacer(Modifier.weight(1f))
+
+                                if (!b.paid && b.status != "Cancelled") {
+                                    Text("Cancel", color = JColors.Red, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.clickable {
+                                            info = null
+                                            scope.launch {
+                                                when (val r = Api.cancelBooking(b.id, token)) {
+                                                    is Result.Ok -> { info = "Order cancelled"; reload++ }
+                                                    is Result.Err -> info = r.message
+                                                }
+                                            }
+                                        }.padding(horizontal = 8.dp, vertical = 4.dp))
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = JColors.Primary,
+                                        modifier = Modifier.clickable { info = null; pay(b) }
+                                    ) {
+                                        Text("Pay now", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                                    }
+                                }
                             }
                         }
                     }

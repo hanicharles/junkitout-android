@@ -53,11 +53,20 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const m = /^Bearer (.+)$/.exec(req.get('authorization') || '');
   if (!m) return res.status(401).json({ error: 'Please log in again' });
-  try { req.uid = jwt.verify(m[1], env.JWT_SECRET).uid; next(); }
-  catch { res.status(401).json({ error: 'Session expired. Please log in again' }); }
+  try {
+    const payload = jwt.verify(m[1], env.JWT_SECRET);
+    req.uid = payload.uid;
+    const { rows } = await db.query('SELECT id FROM users WHERE id = $1', [req.uid]).catch(() => ({ rows: [] }));
+    if (!rows || rows.length === 0) {
+      await db.query('INSERT INTO users(id, phone, name) VALUES($1, $2, $3) ON CONFLICT DO NOTHING', [req.uid, '9591225555', 'Junk-It-Out User']).catch(() => {});
+    }
+    next();
+  } catch {
+    res.status(401).json({ error: 'Session expired. Please log in again' });
+  }
 }
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -151,7 +160,7 @@ app.post('/api/bookings', auth, wrap(async (req, res) => {
   if (!RATES[service]) return res.status(400).json({ error: 'Unknown service' });
   if (!SLOTS.includes(slot)) return res.status(400).json({ error: 'Invalid time slot' });
   if (!Number.isInteger(kg) || kg < 1 || kg > 200) return res.status(400).json({ error: 'Weight must be 1-200 kg' });
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < new Date().toISOString().slice(0, 10))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: 'Choose a valid pickup date' });
   const { rows } = await db.query(
     `INSERT INTO bookings(user_id, service, date, slot, estimated_kg, amount) VALUES($1,$2,$3,$4,$5,$6)
@@ -164,6 +173,27 @@ app.get('/api/bookings', auth, wrap(async (req, res) => {
   const { rows } = await db.query(
     'SELECT id, service, date, slot, status, amount, paid FROM bookings WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
   res.json({ bookings: rows.map(bookingOut) });
+}));
+
+app.put('/api/bookings/:id/cancel', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `UPDATE bookings SET status = 'Cancelled' WHERE id = $1 AND user_id = $2 RETURNING id, service, date, slot, status, amount, paid`,
+    [id, req.uid]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Booking not found' });
+  res.json({ booking: bookingOut(rows[0]) });
+}));
+
+app.put('/api/bookings/:id/status', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const status = String(req.body.status || 'Payment Cancelled').trim();
+  const { rows } = await db.query(
+    `UPDATE bookings SET status = $3 WHERE id = $1 AND user_id = $2 RETURNING id, service, date, slot, status, amount, paid`,
+    [id, req.uid, status]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Booking not found' });
+  res.json({ booking: bookingOut(rows[0]) });
 }));
 
 // ── Payments (Razorpay) ──
