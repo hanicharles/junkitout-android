@@ -6,6 +6,7 @@ import com.junkitout.app.data.Api
 import com.junkitout.app.data.Result
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -106,85 +108,280 @@ fun MainScreen(
 @Composable
 private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, onBook: (String?) -> Unit) {
     val ctx = LocalContext.current
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        // Header Location Bar & Notification Bell
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(CircleShape).background(JColors.Light), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.LocationOn, null, tint = JColors.Primary, modifier = Modifier.size(22.dp))
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFEAF6EC),
+                modifier = Modifier.size(40.dp).clickable(onClick = onChangeLocation)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.LocationOn, null, tint = JColors.Primary, modifier = Modifier.size(22.dp))
+                }
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f).clickable(onClick = onChangeLocation)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(area, fontWeight = FontWeight.Bold, color = JColors.Text, fontSize = 15.sp)
+                    Text("Select location", fontWeight = FontWeight.Bold, color = JColors.Text, fontSize = 15.sp)
+                    Spacer(Modifier.width(4.dp))
                     Icon(Icons.Filled.KeyboardArrowDown, null, modifier = Modifier.size(18.dp), tint = JColors.Text)
                 }
-                Text(city.ifBlank { "Bengaluru" }, color = JColors.Subtle, fontSize = 11.sp)
+                Text(city.ifBlank { "Bengaluru" }, color = JColors.Subtle, fontSize = 12.sp)
             }
             Box(Modifier.clickable { Toast.makeText(ctx, "No new notifications", Toast.LENGTH_SHORT).show() }) {
-                Icon(Icons.Filled.Notifications, "Notifications", tint = JColors.Text, modifier = Modifier.size(26.dp))
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-        Surface(shape = RoundedCornerShape(14.dp), color = Color.White, shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth().clickable { onBook(null) }) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Search, null, tint = JColors.Text, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("Search for services...", color = JColors.Subtle, fontSize = 14.sp)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
-                .background(Brush.horizontalGradient(listOf(Color(0xFF0A3A1C), Color(0xFF1B7A3E))))
-                .padding(18.dp)
-        ) {
-            Column {
-                Text("Let's Recycle\nFor a Cleaner\nTomorrow", color = Color.White, fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold, lineHeight = 24.sp)
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFF3DB35F))
-                        .clickable { onBook(null) }
-                        .padding(horizontal = 16.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Book Now", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Spacer(Modifier.width(6.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.White, modifier = Modifier.size(15.dp))
+                Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.Notifications, "Notifications", tint = JColors.Text, modifier = Modifier.size(22.dp))
                 }
+                Box(
+                    Modifier.size(10.dp).clip(CircleShape).background(JColors.Red)
+                        .align(Alignment.TopEnd)
+                )
             }
-            // Illustration placeholder – swap with your exported bin artwork
-            Text("♻️", fontSize = 84.sp, modifier = Modifier.align(Alignment.CenterEnd))
         }
-        Spacer(Modifier.height(20.dp))
+
+        Spacer(Modifier.height(14.dp))
+
+        // Search Bar with Filter Sliders Icon
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth().clickable { onBook(null) }
+        ) {
+            Row(
+                Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Search, null, tint = JColors.Subtle, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Search for services...", color = JColors.Subtle, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Icon(Icons.Filled.Tune, "Filter", tint = JColors.Primary, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Hero Banner Card
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFF0A3A1C),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                Modifier.fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF093318), Color(0xFF145C2F))))
+                    .padding(18.dp)
+            ) {
+                Column(Modifier.fillMaxWidth(0.65f)) {
+                    Text(
+                        "Let's Recycle\nFor a Cleaner\nTomorrow",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 24.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Schedule a pickup and make your city greener.",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF2E9A50),
+                        modifier = Modifier.clickable { onBook(null) }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Book a Pickup", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Spacer(Modifier.width(6.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+                Text("♻️", fontSize = 72.sp, modifier = Modifier.align(Alignment.CenterEnd))
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Carousel Indicator Dots
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(JColors.Primary))
+            Spacer(Modifier.width(4.dp))
+            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
+            Spacer(Modifier.width(4.dp))
+            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
+            Spacer(Modifier.width(4.dp))
+            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // Our Services Section Header
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Our Services", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = JColors.Text, modifier = Modifier.weight(1f))
-            Text("View All", color = JColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            Text("Our Services", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = JColors.Text, modifier = Modifier.weight(1f))
+            Text("View All", color = JColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onBook(null) })
         }
+
         Spacer(Modifier.height(12.dp))
+
+        // 2x2 Services Grid
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ServiceTile(Icons.Filled.Devices, "E-Waste\nDisposal", Color(0xFF3B82A0), Modifier.weight(1f)) { onBook("E-Waste Disposal") }
-            ServiceTile(Icons.Filled.Delete, "Household\nDry Waste", Color(0xFFE59A2E), Modifier.weight(1f)) { onBook("Household Dry Waste") }
+            RichServiceCard(
+                title = "E-Waste\nDisposal",
+                subtitle = "Old electronics,\nIT equipment",
+                iconText = "💻",
+                cardBg = Color(0xFFEAF6EC),
+                arrowBg = Color(0xFFD5EDD8),
+                arrowTint = JColors.Primary,
+                modifier = Modifier.weight(1f)
+            ) { onBook("E-Waste Disposal") }
+
+            RichServiceCard(
+                title = "Household\nDry Waste",
+                subtitle = "Paper, metal,\nglass, etc.",
+                iconText = "🥫",
+                cardBg = Color(0xFFFDF7EE),
+                arrowBg = Color(0xFFFDE8D0),
+                arrowTint = Color(0xFFE57A2E),
+                modifier = Modifier.weight(1f)
+            ) { onBook("Household Dry Waste") }
         }
+
         Spacer(Modifier.height(12.dp))
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ServiceTile(Icons.Filled.Description, "Paper &\nCardboard", Color(0xFF3DA35D), Modifier.weight(1f)) { onBook("Paper & Cardboard") }
-            ServiceTile(Icons.Filled.LocalDrink, "Plastic\nWaste", Color(0xFF2F80ED), Modifier.weight(1f)) { onBook("Plastic Waste") }
+            RichServiceCard(
+                title = "Paper &\nCardboard",
+                subtitle = "Newspapers,\ncartons, boxes",
+                iconText = "📦",
+                cardBg = Color(0xFFF7FAEE),
+                arrowBg = Color(0xFFE8F5D8),
+                arrowTint = Color(0xFF3DA35D),
+                modifier = Modifier.weight(1f)
+            ) { onBook("Paper & Cardboard") }
+
+            RichServiceCard(
+                title = "Plastic\nWaste",
+                subtitle = "Bottles, containers,\npackaging",
+                iconText = "🧴",
+                cardBg = Color(0xFFEDF5FD),
+                arrowBg = Color(0xFFD8E9F8),
+                arrowTint = Color(0xFF2F80ED),
+                modifier = Modifier.weight(1f)
+            ) { onBook("Plastic Waste") }
         }
-        Spacer(Modifier.height(16.dp))
+
+        Spacer(Modifier.height(18.dp))
+
+        // 4 Value Proposition Items Card
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                Modifier.padding(vertical = 14.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ValuePropItem(iconText = "🍃", label = "Eco Friendly\nDisposal")
+                Box(Modifier.width(1.dp).height(30.dp).background(JColors.Border))
+                ValuePropItem(iconText = "🛡️", label = "Verified\nPickups")
+                Box(Modifier.width(1.dp).height(30.dp).background(JColors.Border))
+                ValuePropItem(iconText = "📅", label = "Flexible\nScheduling")
+                Box(Modifier.width(1.dp).height(30.dp).background(JColors.Border))
+                ValuePropItem(iconText = "💸", label = "Affordable\nPricing")
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // Bottom Sustainability Banner
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFFEAF6EC),
+            border = BorderStroke(1.dp, Color(0xFFD5EDD8)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🌱", fontSize = 52.sp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Cleaner Homes,\nGreener Bengaluru", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = JColors.Text, lineHeight = 19.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Dispose responsibly and help build a sustainable future.", fontSize = 12.sp, color = JColors.Subtle, lineHeight = 16.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
     }
 }
 
 @Composable
-private fun ServiceTile(icon: ImageVector, label: String, tint: Color, modifier: Modifier, onClick: () -> Unit) {
-    Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 2.dp, modifier = modifier.clickable(onClick = onClick)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+private fun RichServiceCard(
+    title: String,
+    subtitle: String,
+    iconText: String,
+    cardBg: Color,
+    arrowBg: Color,
+    arrowTint: Color,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = cardBg,
+        modifier = modifier.clickable(onClick = onClick)
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Text(iconText, fontSize = 36.sp, modifier = Modifier.weight(1f))
+                Box(
+                    Modifier.size(28.dp).clip(CircleShape).background(arrowBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = arrowTint, modifier = Modifier.size(14.dp))
+                }
             }
-            Spacer(Modifier.width(10.dp))
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = JColors.Text, lineHeight = 15.sp)
+            Spacer(Modifier.height(10.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = JColors.Text, lineHeight = 17.sp)
+            Spacer(Modifier.height(3.dp))
+            Text(subtitle, fontSize = 11.sp, color = JColors.Subtle, lineHeight = 14.sp)
         }
+    }
+}
+
+@Composable
+private fun ValuePropItem(iconText: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(36.dp).clip(CircleShape).background(Color(0xFFEAF6EC)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(iconText, fontSize = 18.sp)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = JColors.Text,
+            textAlign = TextAlign.Center,
+            lineHeight = 12.sp
+        )
     }
 }
 
