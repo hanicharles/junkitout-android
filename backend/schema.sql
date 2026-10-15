@@ -7,8 +7,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS addresses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL DEFAULT '',
+  phone text NOT NULL DEFAULT '',
   house text NOT NULL, street text NOT NULL, landmark text NOT NULL DEFAULT '',
+  city text NOT NULL DEFAULT 'Bengaluru', state text NOT NULL DEFAULT 'Karnataka',
   type text NOT NULL DEFAULT 'Home', pincode text NOT NULL DEFAULT '',
+  is_default boolean NOT NULL DEFAULT false,
   lat double precision, lng double precision,
   created_at timestamptz NOT NULL DEFAULT now()
 );

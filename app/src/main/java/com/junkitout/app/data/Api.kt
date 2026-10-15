@@ -75,21 +75,67 @@ object Api {
     }
 
     // ── Addresses ──
+    private fun JSONObject.toAddress() = Address(
+        id = optString("id"),
+        name = optString("name"),
+        phone = optString("phone"),
+        house = optString("house"),
+        street = optString("street"),
+        landmark = optString("landmark"),
+        city = optString("city", "Bengaluru"),
+        state = optString("state", "Karnataka"),
+        type = optString("type", "Home"),
+        pincode = optString("pincode"),
+        isDefault = optBoolean("isDefault"),
+        lat = optDouble("lat", 0.0),
+        lng = optDouble("lng", 0.0)
+    )
+
+    private fun Address.toJson() = JSONObject()
+        .put("name", name)
+        .put("phone", phone)
+        .put("house", house)
+        .put("street", street)
+        .put("landmark", landmark)
+        .put("city", city)
+        .put("state", state)
+        .put("type", type)
+        .put("pincode", pincode)
+        .put("isDefault", isDefault)
+        .put("lat", lat)
+        .put("lng", lng)
+
     suspend fun saveAddress(a: Address, token: String): Result<Address> {
-        val b = JSONObject().put("house", a.house).put("street", a.street).put("landmark", a.landmark)
-            .put("type", a.type).put("pincode", a.pincode).put("lat", a.lat).put("lng", a.lng)
-        return when (val r = call("POST", "/api/addresses", token, b)) {
-            is Result.Ok -> Result.Ok(a.copy(id = (r.value.optJSONObject("address") ?: r.value).optString("id")))
+        return when (val r = call("POST", "/api/addresses", token, a.toJson())) {
+            is Result.Ok -> Result.Ok((r.value.optJSONObject("address") ?: r.value).toAddress())
+            is Result.Err -> r
+        }
+    }
+
+    suspend fun updateAddress(a: Address, token: String): Result<Address> {
+        return when (val r = call("PUT", "/api/addresses/${a.id}", token, a.toJson())) {
+            is Result.Ok -> Result.Ok((r.value.optJSONObject("address") ?: r.value).toAddress())
+            is Result.Err -> r
+        }
+    }
+
+    suspend fun deleteAddress(addressId: String, token: String): Result<Unit> {
+        return when (val r = call("DELETE", "/api/addresses/$addressId", token)) {
+            is Result.Ok -> Result.Ok(Unit)
+            is Result.Err -> r
+        }
+    }
+
+    suspend fun setDefaultAddress(addressId: String, token: String): Result<Address> {
+        return when (val r = call("PUT", "/api/addresses/$addressId/default", token)) {
+            is Result.Ok -> Result.Ok((r.value.optJSONObject("address") ?: r.value).toAddress())
             is Result.Err -> r
         }
     }
 
     suspend fun addresses(token: String): Result<List<Address>> =
         when (val r = call("GET", "/api/addresses", token)) {
-            is Result.Ok -> Result.Ok(r.value.optJSONArray("addresses").toList { o ->
-                Address(o.optString("id"), o.optString("house"), o.optString("street"),
-                    o.optString("landmark"), o.optString("type", "Home"), o.optString("pincode"))
-            })
+            is Result.Ok -> Result.Ok(r.value.optJSONArray("addresses").toList { it.toAddress() })
             is Result.Err -> r
         }
 

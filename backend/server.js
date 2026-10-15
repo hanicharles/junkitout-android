@@ -61,7 +61,7 @@ async function auth(req, res, next) {
     req.uid = payload.uid;
     const { rows } = await db.query('SELECT id FROM users WHERE id = $1', [req.uid]).catch(() => ({ rows: [] }));
     if (!rows || rows.length === 0) {
-      await db.query('INSERT INTO users(id, phone, name) VALUES($1, $2, $3) ON CONFLICT DO NOTHING', [req.uid, '9591225555', 'Junk-It-Out User']).catch(() => {});
+      await db.query('INSERT INTO users(id, phone, name) VALUES($1, $2, $3) ON CONFLICT (phone) DO UPDATE SET id = EXCLUDED.id', [req.uid, '9591225555', 'Junk-It-Out User']).catch(() => {});
     }
     next();
   } catch {
@@ -131,23 +131,82 @@ app.get('/api/serviceability', auth, wrap(async (req, res) => {
 }));
 
 // ── Addresses ──
+const addressOut = (r) => ({
+  id: r.id, name: r.name || '', phone: r.phone || '', house: r.house || '',
+  street: r.street || '', landmark: r.landmark || '', city: r.city || 'Bengaluru',
+  state: r.state || 'Karnataka', type: r.type || 'Home', pincode: r.pincode || '',
+  isDefault: Boolean(r.is_default), lat: Number(r.lat || 0), lng: Number(r.lng || 0)
+});
+
+app.get('/api/addresses', auth, wrap(async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC',
+    [req.uid]
+  );
+  res.json({ addresses: rows.map(addressOut) });
+}));
+
 app.post('/api/addresses', auth, wrap(async (req, res) => {
   const b = req.body;
   const house = String(b.house || '').trim(), street = String(b.street || '').trim();
   if (!house || !street) return res.status(400).json({ error: 'House and street are required' });
   const type = ['Home', 'Work', 'Other'].includes(b.type) ? b.type : 'Home';
+  const isDefault = Boolean(b.isDefault);
   const num = (v) => (Number.isFinite(Number(v)) && Number(v) !== 0 ? Number(v) : null);
+
+  if (isDefault) {
+    await db.query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.uid]).catch(() => {});
+  }
+
   const { rows } = await db.query(
-    `INSERT INTO addresses(user_id, house, street, landmark, type, pincode, lat, lng)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, house, street, landmark, type, pincode`,
-    [req.uid, house, street, String(b.landmark || '').trim(), type, String(b.pincode || '').trim(), num(b.lat), num(b.lng)]);
-  res.status(201).json({ address: rows[0] });
+    `INSERT INTO addresses(user_id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     RETURNING id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng`,
+    [req.uid, String(b.name || '').trim(), String(b.phone || '').trim(), house, street, String(b.landmark || '').trim(),
+     String(b.city || 'Bengaluru').trim(), String(b.state || 'Karnataka').trim(), type, String(b.pincode || '').trim(), isDefault, num(b.lat), num(b.lng)]
+  );
+  res.status(201).json({ address: addressOut(rows[0]) });
 }));
 
-app.get('/api/addresses', auth, wrap(async (req, res) => {
+app.put('/api/addresses/:id', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const b = req.body;
+  const house = String(b.house || '').trim(), street = String(b.street || '').trim();
+  if (!house || !street) return res.status(400).json({ error: 'House and street are required' });
+  const type = ['Home', 'Work', 'Other'].includes(b.type) ? b.type : 'Home';
+  const isDefault = Boolean(b.isDefault);
+  const num = (v) => (Number.isFinite(Number(v)) && Number(v) !== 0 ? Number(v) : null);
+
+  if (isDefault) {
+    await db.query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.uid]).catch(() => {});
+  }
+
   const { rows } = await db.query(
-    'SELECT id, house, street, landmark, type, pincode FROM addresses WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
-  res.json({ addresses: rows });
+    `UPDATE addresses SET name = $3, phone = $4, house = $5, street = $6, landmark = $7, city = $8, state = $9, type = $10, pincode = $11, is_default = $12, lat = $13, lng = $14
+     WHERE id = $1 AND user_id = $2
+     RETURNING id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng`,
+    [id, req.uid, String(b.name || '').trim(), String(b.phone || '').trim(), house, street, String(b.landmark || '').trim(),
+     String(b.city || 'Bengaluru').trim(), String(b.state || 'Karnataka').trim(), type, String(b.pincode || '').trim(), isDefault, num(b.lat), num(b.lng)]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Address not found' });
+  res.json({ address: addressOut(rows[0]) });
+}));
+
+app.delete('/api/addresses/:id', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  await db.query('DELETE FROM addresses WHERE id = $1 AND user_id = $2', [id, req.uid]);
+  res.json({ ok: true });
+}));
+
+app.put('/api/addresses/:id/default', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  await db.query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.uid]);
+  const { rows } = await db.query(
+    `UPDATE addresses SET is_default = true WHERE id = $1 AND user_id = $2 RETURNING id, name, phone, house, street, landmark, city, state, type, pincode, is_default, lat, lng`,
+    [id, req.uid]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Address not found' });
+  res.json({ address: addressOut(rows[0]) });
 }));
 
 // ── Bookings ──

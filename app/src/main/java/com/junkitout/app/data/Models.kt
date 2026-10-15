@@ -3,9 +3,19 @@ package com.junkitout.app.data
 data class Place(val area: String, val city: String, val pincode: String, val lat: Double, val lng: Double)
 
 data class Address(
-    val id: String = "", val house: String, val street: String,
-    val landmark: String, val type: String, val pincode: String = "",
-    val lat: Double = 0.0, val lng: Double = 0.0,
+    val id: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val house: String,
+    val street: String,
+    val landmark: String = "",
+    val city: String = "Bengaluru",
+    val state: String = "Karnataka",
+    val type: String = "Home",
+    val pincode: String = "",
+    val isDefault: Boolean = false,
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
 )
 
 data class Booking(

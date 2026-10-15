@@ -33,11 +33,7 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
 
         composable("splash") {
             SplashScreen {
-                val dest = when {
-                    !session.loggedIn -> "login"
-                    place == null -> "location"
-                    else -> "home"
-                }
+                val dest = if (!session.loggedIn) "login" else "home"
                 nav.navigate(dest) { popUpTo("splash") { inclusive = true } }
             }
         }
@@ -48,7 +44,7 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
             OtpScreen(phone, onBack = { nav.popBackStack() }, onVerified = { t, n ->
                 token = t; name = n
                 session.token = t; session.name = n; session.phone = phone
-                nav.navigate("location") { popUpTo("login") { inclusive = true } }
+                nav.navigate("home") { popUpTo("login") { inclusive = true } }
             })
         }
         composable("location") {
@@ -87,6 +83,14 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
         composable("address") {
             AddAddressScreen(place, token, onBack = { nav.popBackStack() }, onSave = { nav.navigate("saved") })
         }
+        composable("addresses") {
+            AddressManagerScreen(
+                token = token,
+                onBack = { nav.popBackStack() },
+                onAddNew = { nav.navigate("address") },
+                onEdit = { nav.navigate("address") }
+            )
+        }
         composable("saved") {
             AddressSavedScreen { goHome() }
         }
@@ -96,8 +100,8 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 phone = phone, name = name, token = token,
                 startPayment = startPayment,
                 onBook = { svc -> bookService = svc; nav.navigate("book") },
-                onChangeLocation = { nav.navigate("location") },
-                onAddAddress = { nav.navigate("address") },
+                onChangeLocation = { nav.navigate("addresses") },
+                onAddAddress = { nav.navigate("addresses") },
                 onNameChanged = { n -> name = n; session.name = n },
                 onLogout = {
                     session.clear(); token = ""; name = ""; phone = ""; place = null
