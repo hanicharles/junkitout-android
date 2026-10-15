@@ -1,0 +1,9 @@
+# Copy to local.properties (git-ignored). Client-safe values ONLY.
+sdk.dir=/path/to/Android/Sdk
+
+# Backend base URL. Emulator -> host machine's localhost:3000 is 10.0.2.2
+API_BASE_URL=http://10.0.2.2:3000
+# Razorpay PUBLIC key id (rzp_test_... while developing). Never the secret.
+RAZORPAY_KEY_ID=
+# Google Maps key: restrict to package com.junkitout.app + your SHA-1, and to Geocoding/Maps SDK.
+GOOGLE_MAPS_API_KEY=
