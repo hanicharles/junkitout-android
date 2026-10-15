@@ -102,7 +102,8 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 onLogout = {
                     session.clear(); token = ""; name = ""; phone = ""; place = null
                     nav.navigate("login") { popUpTo(0) { inclusive = true } }
-                }
+                },
+                onOpenChat = { nav.navigate("chat") }
             )
         }
         composable("book") {
@@ -112,6 +113,9 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 onBack = { nav.popBackStack() },
                 onDone = { nav.popBackStack() }
             )
+        }
+        composable("chat") {
+            SupportChatScreen(onBack = { nav.popBackStack() })
         }
     }
 }

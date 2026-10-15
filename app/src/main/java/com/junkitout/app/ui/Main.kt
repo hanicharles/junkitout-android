@@ -75,6 +75,7 @@ fun MainScreen(
     startPayment: (String, Long, String) -> Unit,
     onBook: (service: String?) -> Unit,
     onChangeLocation: () -> Unit, onAddAddress: () -> Unit, onNameChanged: (String) -> Unit, onLogout: () -> Unit,
+    onOpenChat: () -> Unit = {},
 ) {
     var tab by remember { mutableIntStateOf(0) }
     val ctx = LocalContext.current
@@ -95,7 +96,7 @@ fun MainScreen(
                 0 -> HomeTab(area, city, onChangeLocation, onBook)
                 1 -> OrdersTab(token, phone, startPayment)
                 3 -> OrdersTab(token, phone, startPayment, walletMode = true)
-                4 -> MenuTab(phone, name, token, onAddAddress, onNameChanged, onLogout, onOpenOrders = { tab = 1 }, onOpenWallet = { tab = 3 })
+                4 -> MenuTab(phone, name, token, onAddAddress, onNameChanged, onLogout, onOpenOrders = { tab = 1 }, onOpenWallet = { tab = 3 }, onOpenChat = onOpenChat)
             }
         }
     }
@@ -232,7 +233,7 @@ private fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick
 @Composable
 private fun MenuTab(
     phone: String, name: String, token: String, onAddAddress: () -> Unit, onNameChanged: (String) -> Unit, onLogout: () -> Unit,
-    onOpenOrders: () -> Unit, onOpenWallet: () -> Unit,
+    onOpenOrders: () -> Unit, onOpenWallet: () -> Unit, onOpenChat: () -> Unit,
 ) {
     val shown = if (phone.length == 10) "+91 ${phone.take(5)} ${phone.drop(5)}" else "+91 $phone"
     val ctx = LocalContext.current
@@ -283,10 +284,7 @@ private fun MenuTab(
             Triple(Icons.Filled.LocationOn, "My Addresses", { showAddresses = !showAddresses }),
             Triple(Icons.Filled.Receipt, "My Orders", onOpenOrders),
             Triple(Icons.Filled.AccountBalanceWallet, "Wallet & Payments", onOpenWallet),
-            Triple(Icons.Filled.Help, "Support", {
-                ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_SENDTO,
-                    android.net.Uri.parse("mailto:support@junkitout.in")).putExtra(android.content.Intent.EXTRA_SUBJECT, "Junk-It-Out support"))
-            }),
+            Triple(Icons.Filled.Help, "Support & Chatbot", onOpenChat),
             Triple(Icons.Filled.Info, "About Us", { toast("Junk-It-Out v1.0 - Cleaner homes, greener tomorrow") }),
         )
         for ((ic, label, action) in items) {
