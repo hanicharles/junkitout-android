@@ -50,7 +50,7 @@ const safeEqual = (a, b) => {
 };
 const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
   console.error(req.method, req.path, e);
-  res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  res.status(400).json({ error: e.message || 'Request failed. Please try again.' });
 });
 
 async function auth(req, res, next) {
@@ -61,7 +61,12 @@ async function auth(req, res, next) {
     req.uid = payload.uid;
     const { rows } = await db.query('SELECT id FROM users WHERE id = $1', [req.uid]).catch(() => ({ rows: [] }));
     if (!rows || rows.length === 0) {
-      await db.query('INSERT INTO users(id, phone, name) VALUES($1, $2, $3) ON CONFLICT (phone) DO UPDATE SET id = EXCLUDED.id', [req.uid, '9591225555', 'Junk-It-Out User']).catch(() => {});
+      await db.query(
+        'INSERT INTO users(id, phone, name) VALUES($1, $2, $3) ON CONFLICT (id) DO NOTHING',
+        [req.uid, '9591225555', 'Junk-It-Out User']
+      ).catch(async () => {
+        await db.query('UPDATE users SET id = $1 WHERE phone = $2', [req.uid, '9591225555']).catch(() => {});
+      });
     }
     next();
   } catch {
