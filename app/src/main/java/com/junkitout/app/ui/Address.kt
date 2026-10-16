@@ -101,8 +101,29 @@ fun AddressManagerScreen(
             val p = if (fix != null) Geo.reverse(ctx, fix.latitude, fix.longitude)
                 ?: Place("Current location", "Bengaluru", "", fix.latitude, fix.longitude)
             else Place("Bengaluru", "Bengaluru", "", 0.0, 0.0)
-            busyGps = false
-            onUseLiveLocation(p)
+
+            val newAddress = Address(
+                house = "Current Location",
+                street = p.area.ifBlank { "Live GPS Area" },
+                city = p.city.ifBlank { "Bengaluru" },
+                pincode = p.pincode,
+                type = "Home",
+                isDefault = addresses.isEmpty(),
+                lat = p.lat,
+                lng = p.lng
+            )
+
+            when (val r = Api.saveAddress(newAddress, token)) {
+                is Result.Ok -> {
+                    busyGps = false
+                    android.widget.Toast.makeText(ctx, "Current location saved successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                    reload++
+                }
+                is Result.Err -> {
+                    busyGps = false
+                    android.widget.Toast.makeText(ctx, r.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -193,7 +214,7 @@ fun AddressManagerScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    // 3 Action Cards
+                    // 2 Action Cards
                     LocationActionCard(
                         title = "Use Current Location",
                         subtitle = if (busyGps) "Detecting location..." else "Get your live location using GPS",
@@ -204,20 +225,6 @@ fun AddressManagerScreen(
                         cardBorder = null,
                         chevronTint = JColors.Primary,
                         onClick = ::detectGpsAndAdd
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-
-                    LocationActionCard(
-                        title = "Select on Map",
-                        subtitle = "Choose a location on the map",
-                        icon = Icons.Filled.LocationOn,
-                        iconBg = Color(0xFFE8F1FD),
-                        iconTint = Color(0xFF2F80ED),
-                        cardBg = Color.White,
-                        cardBorder = BorderStroke(1.dp, Color(0xFFDCE7DD)),
-                        chevronTint = JColors.Subtle,
-                        onClick = onSelectOnMap
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -301,7 +308,7 @@ fun AddressManagerScreen(
 
                     Spacer(Modifier.height(20.dp))
 
-                    // 3 Action Cards below saved list
+                    // 2 Action Cards below saved list
                     LocationActionCard(
                         title = "Use Current Location",
                         subtitle = if (busyGps) "Detecting location..." else "Get your live location using GPS",
@@ -312,20 +319,6 @@ fun AddressManagerScreen(
                         cardBorder = null,
                         chevronTint = JColors.Primary,
                         onClick = ::detectGpsAndAdd
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-
-                    LocationActionCard(
-                        title = "Select on Map",
-                        subtitle = "Choose a location on the map",
-                        icon = Icons.Filled.LocationOn,
-                        iconBg = Color(0xFFE8F1FD),
-                        iconTint = Color(0xFF2F80ED),
-                        cardBg = Color.White,
-                        cardBorder = BorderStroke(1.dp, Color(0xFFDCE7DD)),
-                        chevronTint = JColors.Subtle,
-                        onClick = onSelectOnMap
                     )
 
                     Spacer(Modifier.height(10.dp))
