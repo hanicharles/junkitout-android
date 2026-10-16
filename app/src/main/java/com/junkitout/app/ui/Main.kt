@@ -353,6 +353,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFF4F7EE),
                     arrowBg = Color(0xFFE2EDCE),
                     arrowTint = Color(0xFF3DA35D),
+                    imageRes = com.junkitout.app.R.drawable.img_paper_waste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Paper & Cardboard") }
 
