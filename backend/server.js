@@ -385,33 +385,42 @@ app.get('/api/wallet', auth, wrap(async (req, res) => {
 }));
 
 app.get('/api/wallet/transactions', auth, wrap(async (req, res) => {
-  const { rows } = await db.query(
+  const { rows: wRows } = await db.query(
     'SELECT id, title, subtitle, amount, type, status, created_at FROM wallet_transactions WHERE user_id = $1 ORDER BY created_at DESC',
     [req.uid]
   ).catch(() => ({ rows: [] }));
 
-  if (!rows || rows.length === 0) {
-    const sample = [
-      { id: '1', title: 'Pickup Payment', subtitle: 'Order #JIO12345', amount: 150.00, type: 'debit', status: 'Successful', date: '12 Dec 2024, 10:30 AM' },
-      { id: '2', title: 'Refund', subtitle: 'Order #JIO12340', amount: 50.00, type: 'credit', status: 'Completed', date: '10 Dec 2024, 04:15 PM' },
-      { id: '3', title: 'Added Money', subtitle: 'Via UPI (Google Pay)', amount: 200.00, type: 'credit', status: 'Successful', date: '08 Dec 2024, 11:20 AM' },
-      { id: '4', title: 'Pickup Payment', subtitle: 'Order #JIO12318', amount: 100.00, type: 'debit', status: 'Successful', date: '05 Dec 2024, 02:45 PM' },
-      { id: '5', title: 'Refund', subtitle: 'Order #JIO12310', amount: 50.00, type: 'credit', status: 'Processing', date: '02 Dec 2024, 03:10 PM' }
-    ];
-    return res.json({ transactions: sample });
+  if (wRows && wRows.length > 0) {
+    return res.json({
+      transactions: wRows.map(r => ({
+        id: r.id,
+        title: r.title,
+        subtitle: r.subtitle,
+        amount: Number(r.amount),
+        type: r.type,
+        status: r.status,
+        date: new Date(r.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      }))
+    });
   }
 
-  res.json({
-    transactions: rows.map(r => ({
-      id: r.id,
-      title: r.title,
-      subtitle: r.subtitle,
-      amount: Number(r.amount),
-      type: r.type,
-      status: r.status,
-      date: new Date(r.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    }))
-  });
+  // Fetch real payment transactions from user's actual bookings
+  const { rows: bRows } = await db.query(
+    'SELECT id, service, amount, paid, status, created_at FROM bookings WHERE user_id = $1 ORDER BY created_at DESC',
+    [req.uid]
+  ).catch(() => ({ rows: [] }));
+
+  const realTxList = bRows.map(b => ({
+    id: b.id,
+    title: `${b.service} Pickup`,
+    subtitle: `Order #${b.id.slice(0, 8).toUpperCase()}`,
+    amount: Number(b.amount),
+    type: 'debit',
+    status: b.paid ? 'Successful' : (b.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
+    date: new Date(b.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }));
+
+  res.json({ transactions: realTxList });
 }));
 
 app.post('/api/wallet/topup', auth, wrap(async (req, res) => {
