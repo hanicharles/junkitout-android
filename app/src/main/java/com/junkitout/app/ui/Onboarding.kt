@@ -1,5 +1,6 @@
 package com.junkitout.app.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import com.junkitout.app.R
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -66,12 +69,17 @@ fun SplashScreen(onDone: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Box(
-                Modifier.size(150.dp).clip(CircleShape)
+                Modifier.size(160.dp).clip(RoundedCornerShape(32.dp))
                     .background(Color.White.copy(alpha = 0.08f))
-                    .border(3.dp, Color(0xFFB7D8BE), CircleShape),
+                    .border(2.dp, Color(0xFFB7D8BE), RoundedCornerShape(32.dp))
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Autorenew, null, tint = Color(0xFFCFEAD3), modifier = Modifier.size(90.dp))
+                Image(
+                    painter = painterResource(R.drawable.app_logo),
+                    contentDescription = "Junk-It-Out Logo",
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(26.dp))
+                )
             }
             Spacer(Modifier.height(20.dp))
             Text("Junk-It-Out", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
