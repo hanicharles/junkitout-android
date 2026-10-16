@@ -331,6 +331,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFEAF6EC),
                     arrowBg = Color(0xFFD5EDD8),
                     arrowTint = JColors.Primary,
+                    imageRes = com.junkitout.app.R.drawable.img_ewaste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("E-Waste Disposal") }
 
@@ -341,6 +342,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFFDF7EE),
                     arrowBg = Color(0xFFFDE8D0),
                     arrowTint = Color(0xFFE57A2E),
+                    imageRes = com.junkitout.app.R.drawable.img_household_dry,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Household Dry Waste") }
             }
