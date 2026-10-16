@@ -47,9 +47,16 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -426,7 +433,7 @@ private fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick
     }
 }
 
-// ───────────────────────── 12 App Menu ─────────────────────────
+// ───────────────────────── 12 Edit Profile / App Menu ─────────────────────────
 @Composable
 private fun MenuTab(
     phone: String, name: String, token: String, onAddAddress: () -> Unit, onNameChanged: (String) -> Unit, onLogout: () -> Unit,
@@ -434,82 +441,265 @@ private fun MenuTab(
 ) {
     val shown = if (phone.length == 10) "+91 ${phone.take(5)} ${phone.drop(5)}" else "+91 $phone"
     val ctx = LocalContext.current
-    var addresses by remember { mutableStateOf<List<Address>>(emptyList()) }
-    var showAddresses by remember { mutableStateOf(false) }
-    var editName by remember { mutableStateOf(false) }
-    var nameDraft by remember { mutableStateOf(name) }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    if (editName) androidx.compose.material3.AlertDialog(
-        onDismissRequest = { editName = false },
-        title = { Text("Your name") },
-        text = { androidx.compose.material3.OutlinedTextField(value = nameDraft, onValueChange = { nameDraft = it }, singleLine = true) },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = {
-                editName = false
-                scope.launch {
-                    when (val r = Api.updateName(nameDraft.trim(), token)) {
-                        is Result.Ok -> onNameChanged(r.value)
-                        is Result.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
+    var nameDraft by remember { mutableStateOf(name.ifBlank { "Junk-It-Out User" }) }
+    var emailDraft by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+    ) {
+        // Header
+        Text("Edit Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JColors.Text)
+        Text("Update your personal information", fontSize = 13.sp, color = JColors.Subtle)
+
+        Spacer(Modifier.height(16.dp))
+
+        // Top Avatar Card Banner
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFFEAF6EC),
+            border = BorderStroke(1.dp, Color(0xFFD5EDD8)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    Box(
+                        Modifier.size(80.dp).clip(CircleShape).background(Color(0xFFD5EDD8)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.Person, null, tint = JColors.Primary, modifier = Modifier.size(48.dp))
+                    }
+                    Box(
+                        Modifier.size(28.dp).clip(CircleShape).background(JColors.Primary)
+                            .clickable { Toast.makeText(ctx, "Photo upload coming soon", Toast.LENGTH_SHORT).show() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.PhotoCamera, "Change Photo", tint = Color.White, modifier = Modifier.size(16.dp))
                     }
                 }
-            }) { Text("Save") }
-        },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { editName = false }) { Text("Cancel") } }
-    )
-    LaunchedEffect(showAddresses) { (Api.addresses(token) as? Result.Ok)?.let { addresses = it.value } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                .background(Brush.horizontalGradient(listOf(Color(0xFF0A3A1C), Color(0xFF145C2F))))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFD5EDD8)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Person, null, tint = JColors.Primary, modifier = Modifier.size(32.dp))
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(name.ifBlank { "Junk-It-Out user" }, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(shown, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
-            }
-            Icon(Icons.Filled.Edit, "Edit name", tint = Color.White,
-                modifier = Modifier.clickable { nameDraft = name; editName = true })
-        }
-        Spacer(Modifier.height(14.dp))
-        val toast = { m: String -> Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show() }
-        val items = listOf<Triple<ImageVector, String, () -> Unit>>(
-            Triple(Icons.Filled.LocationOn, "My Addresses", { showAddresses = !showAddresses }),
-            Triple(Icons.Filled.Receipt, "My Orders", onOpenOrders),
-            Triple(Icons.Filled.AccountBalanceWallet, "Wallet & Payments", onOpenWallet),
-            Triple(Icons.Filled.Help, "Support & Chatbot", onOpenChat),
-            Triple(Icons.Filled.Info, "About Us", { toast("Junk-It-Out v1.0 - Cleaner homes, greener tomorrow") }),
-        )
-        for ((ic, label, action) in items) {
-            Row(Modifier.fillMaxWidth().clickable(onClick = action).padding(vertical = 15.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(ic, null, tint = JColors.Text, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(16.dp))
-                Text(label, color = JColors.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle)
-            }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(JColors.Border.copy(alpha = 0.6f)))
-            if (label == "My Addresses" && showAddresses) {
-                if (addresses.isEmpty()) Text("No saved addresses", color = JColors.Subtle, fontSize = 13.sp, modifier = Modifier.padding(12.dp))
-                for (a in addresses) {
-                    Text("${a.type}: ${a.house}, ${a.street}", color = JColors.Text, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
-                }
-                Text("+ Add new address", color = JColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable(onClick = onAddAddress).padding(12.dp))
+                Spacer(Modifier.height(10.dp))
+                Text(nameDraft.ifBlank { "Junk-It-Out User" }, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = JColors.Text)
+                Spacer(Modifier.height(2.dp))
+                Text("Tap the camera icon to change photo", fontSize = 12.sp, color = JColors.Subtle)
             }
         }
+
         Spacer(Modifier.height(18.dp))
+
+        // Personal Details Section Card
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Personal Details", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text)
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Full Name", fontSize = 12.sp, color = JColors.Subtle)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = nameDraft,
+                    onValueChange = { nameDraft = it },
+                    leadingIcon = { Icon(Icons.Filled.Person, null, tint = JColors.Subtle) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = JColors.Primary,
+                        unfocusedBorderColor = JColors.Border,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Mobile Number", fontSize = 12.sp, color = JColors.Subtle)
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF6F8F6),
+                    border = BorderStroke(1.dp, JColors.Border),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🇮🇳", fontSize = 18.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(shown, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = JColors.Text, modifier = Modifier.weight(1f))
+                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFEAF6EC)) {
+                            Row(
+                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Filled.Lock, null, tint = JColors.Primary, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Verified", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = JColors.Primary)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text("ℹ️ Mobile number cannot be changed from here.", fontSize = 11.sp, color = JColors.Subtle)
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Email (Optional)", fontSize = 12.sp, color = JColors.Subtle)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = emailDraft,
+                    onValueChange = { emailDraft = it },
+                    placeholder = { Text("Enter your email address", fontSize = 14.sp, color = JColors.Subtle) },
+                    leadingIcon = { Icon(Icons.Filled.Email, null, tint = JColors.Subtle) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = JColors.Primary,
+                        unfocusedBorderColor = JColors.Border,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Address Preview Section Card
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Address Preview", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text)
+
+                Spacer(Modifier.height(10.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFEAF6EC),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onAddAddress)
+                ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.LocationOn, null, tint = JColors.Primary, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Manage your addresses from", fontSize = 11.sp, color = JColors.Subtle)
+                            Text("My Addresses", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = JColors.Text)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Preferences Section Card
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Preferences", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text)
+
+                Spacer(Modifier.height(12.dp))
+
+                // Notification Preferences
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFF8FAF8),
+                    border = BorderStroke(1.dp, JColors.Border),
+                    modifier = Modifier.fillMaxWidth().clickable { onOpenChat() }
+                ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(CircleShape).background(Color(0xFFEAF6EC)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Notifications, null, tint = JColors.Primary, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Notification Preferences", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = JColors.Text)
+                            Text("Manage what updates you receive", fontSize = 11.sp, color = JColors.Subtle)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Language
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFF8FAF8),
+                    border = BorderStroke(1.dp, JColors.Border),
+                    modifier = Modifier.fillMaxWidth().clickable { Toast.makeText(ctx, "Language: English (India)", Toast.LENGTH_SHORT).show() }
+                ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(CircleShape).background(Color(0xFFEAF6EC)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Language, null, tint = JColors.Primary, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Language", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = JColors.Text)
+                            Text("English (India)", fontSize = 11.sp, color = JColors.Subtle)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Subtle, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // Save Changes Button
+        PrimaryButton(if (busy) "Saving..." else "Save Changes", arrow = false, enabled = !busy) {
+            busy = true
+            scope.launch {
+                when (val r = Api.updateName(nameDraft.trim(), token)) {
+                    is Result.Ok -> {
+                        busy = false
+                        onNameChanged(r.value)
+                        Toast.makeText(ctx, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                    }
+                    is Result.Err -> {
+                        busy = false
+                        Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Logout Button
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFFCE6E6))
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFFCE6E6))
                 .clickable(onClick = onLogout).padding(16.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, tint = JColors.Red)
-            Spacer(Modifier.width(14.dp))
-            Text("Logout", color = JColors.Red, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(10.dp))
+            Text("Logout", color = JColors.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
+
+        Spacer(Modifier.height(20.dp))
     }
 }
