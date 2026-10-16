@@ -158,26 +158,6 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
             }
         }
 
-        Spacer(Modifier.height(14.dp))
-
-        // Search Bar with Filter Sliders Icon
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = Color.White,
-            shadowElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth().clickable { onBook(null) }
-        ) {
-            Row(
-                Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Filled.Search, null, tint = JColors.Subtle, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("Search for services...", color = JColors.Subtle, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                Icon(Icons.Filled.Tune, "Filter", tint = JColors.Primary, modifier = Modifier.size(20.dp))
-            }
-        }
-
         Spacer(Modifier.height(16.dp))
 
         // Hero Banner Card
