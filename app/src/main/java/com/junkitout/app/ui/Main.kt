@@ -505,7 +505,7 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onBook: () -> Unit
                     Spacer(Modifier.height(24.dp))
                     Text("Book", fontSize = 11.sp, color = JColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
-                NavItem(Icons.Filled.AccountBalance, "Transactions", selected == 3) { onSelect(3) }
+                NavItem(Icons.Filled.AccountBalance, "Transaction", selected == 3) { onSelect(3) }
                 NavItem(Icons.Filled.Person, "Profile", selected == 4) { onSelect(4) }
             }
         }
