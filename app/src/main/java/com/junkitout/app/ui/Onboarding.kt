@@ -93,37 +93,68 @@ fun SplashScreen(onDone: () -> Unit) {
 // ───────────────────────── 02 Login ─────────────────────────
 @Composable
 fun LoginScreen(onContinue: (String) -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var phone by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
     ScreenRoot(
         dark = false,
-        background = Brush.verticalGradient(listOf(Color(0xFFE3F2E1), Color(0xFFA9D6B0), Color(0xFF3F9A5B)))
-    ) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-            Spacer(Modifier.height(24.dp))
-            Text(
-                "A Cleaner\nTomorrow\nStarts Today",
-                color = JColors.ForestGreen, fontSize = 36.sp, fontWeight = FontWeight.Bold, lineHeight = 40.sp
+        background = Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFE2F4E6),
+                Color(0xFFC8ECDF),
+                Color(0xFFD8F2E3)
             )
+        )
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Spacer(Modifier.height(36.dp))
+
+            // Headline
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "A Cleaner\nTomorrow\nStarts Today",
+                        color = Color(0xFF0C3A1D),
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 40.sp
+                    )
+                }
+                Text("🍃", fontSize = 42.sp)
+            }
+
             Spacer(Modifier.height(10.dp))
+
             Text(
                 "Book pickup for your waste\nin just a few taps.",
-                color = JColors.Text, fontSize = 14.sp, lineHeight = 20.sp
+                color = Color(0xFF1B4D2C),
+                fontSize = 15.sp,
+                lineHeight = 20.sp
             )
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                // Illustration placeholder – swap for your exported truck artwork (res/drawable)
-                Text("🚛", fontSize = 110.sp)
-            }
-            Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 4.dp) {
+
+            Spacer(Modifier.height(28.dp))
+
+            // Phone Input Surface Card
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🇮🇳", fontSize = 18.sp)
+                    Text("🇮🇳", fontSize = 20.sp)
                     Spacer(Modifier.width(8.dp))
-                    Text("+91", fontWeight = FontWeight.SemiBold, color = JColors.Text)
+                    Text("+91", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF10251C))
+                    Spacer(Modifier.width(10.dp))
+                    Box(Modifier.width(1.dp).height(18.dp).background(Color(0xFFE0E0E0)))
                     Spacer(Modifier.width(12.dp))
                     BasicTextField(
                         value = phone,
@@ -133,19 +164,24 @@ fun LoginScreen(onContinue: (String) -> Unit) {
                         visualTransformation = VisualTransformation.None,
                         modifier = Modifier.weight(1f),
                         decorationBox = { inner ->
-                            if (phone.isEmpty()) Text("Enter your phone number", color = JColors.Subtle, fontSize = 14.sp)
+                            if (phone.isEmpty()) Text("Enter your phone number", color = JColors.Subtle, fontSize = 15.sp)
                             inner()
                         }
                     )
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = JColors.Subtle, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = JColors.Subtle, modifier = Modifier.size(20.dp))
                 }
             }
+
             Spacer(Modifier.height(14.dp))
+
             error?.let {
                 Text(it, color = JColors.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
             }
+
+            // Continue Button
             PrimaryButton(if (busy) "Sending OTP..." else "Continue", enabled = phone.length == 10 && !busy) {
-                busy = true; error = null
+                busy = true
+                error = null
                 scope.launch {
                     when (val r = Api.sendOtp(phone)) {
                         is Result.Ok -> { busy = false; onContinue(phone) }
@@ -153,12 +189,41 @@ fun LoginScreen(onContinue: (String) -> Unit) {
                     }
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "By continuing, you agree to our\nTerms of Use & Privacy Policy",
-                color = Color.White, fontSize = 11.sp, textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+
+            // Middle Truck & Cityscape Illustration
+            Box(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("🚛", fontSize = 110.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("🌳 🏢 🌲 🏙️ 🌲 🏢 🌳", fontSize = 20.sp)
+                }
+            }
+
+            // Footer Terms & Conditions
+            Column(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "By continuing, you agree to our",
+                    color = Color(0xFF1B4D2C),
+                    fontSize = 12.sp
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Terms of Use & Privacy Policy",
+                    color = Color(0xFF0C3A1D),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable {
+                        android.widget.Toast.makeText(ctx, "Junk-It-Out Terms & Privacy Policy v1.0", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
         }
     }
 }
