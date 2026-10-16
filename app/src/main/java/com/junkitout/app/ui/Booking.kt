@@ -118,7 +118,8 @@ fun rememberPayment(
 fun BookingScreen(
     initialService: String?, token: String, phone: String, area: String,
     startPayment: (String, Long, String) -> Unit,
-    onBack: () -> Unit, onDone: () -> Unit, onAddNewAddress: () -> Unit = {}
+    onBack: () -> Unit, onDone: () -> Unit, onAddNewAddress: () -> Unit = {},
+    onOpenOffers: () -> Unit = {}
 ) {
     var service by remember { mutableStateOf(initialService ?: SERVICES[0]) }
     var dayIdx by remember { mutableIntStateOf(0) }
@@ -599,7 +600,13 @@ private fun Stepper(label: String, onClick: () -> Unit) {
 
 // ───────────────────────── Orders tab ─────────────────────────
 @Composable
-fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String) -> Unit, walletMode: Boolean = false) {
+fun OrdersTab(
+    token: String,
+    phone: String,
+    startPayment: (String, Long, String) -> Unit,
+    walletMode: Boolean = false,
+    onOpenOffers: () -> Unit = {}
+) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var list by remember { mutableStateOf<List<Booking>>(emptyList()) }
@@ -644,17 +651,17 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
         if (!walletMode && list.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val filterLabels = listOf("All", "Upcoming", "Paid", "Cancelled")
+                val filterLabels = listOf("All (${rawList.size})", "Upcoming (${rawList.count { !it.paid && it.status != "Cancelled" }})", "Completed (${rawList.count { it.paid }})", "Cancelled (${rawList.count { it.status == "Cancelled" || it.status == "Payment Cancelled" }})")
                 filterLabels.forEachIndexed { idx, label ->
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = if (filterTab == idx) Color(0xFFEAF6EC) else Color.White,
+                        color = if (filterTab == idx) JColors.Primary else Color.White,
                         border = BorderStroke(if (filterTab == idx) 1.5.dp else 1.dp, if (filterTab == idx) JColors.Primary else JColors.Border),
                         modifier = Modifier.clickable { filterTab = idx }
                     ) {
-                        Text(label, fontSize = 12.sp, fontWeight = if (filterTab == idx) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (filterTab == idx) JColors.Primary else JColors.Text,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                        Text(label, fontSize = 11.sp, fontWeight = if (filterTab == idx) FontWeight.Bold else FontWeight.Medium,
+                            color = if (filterTab == idx) Color.White else JColors.Text,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
                     }
                 }
             }
@@ -679,7 +686,7 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
                     color = JColors.Subtle
                 )
             }
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            else -> LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(shown) { b ->
                     Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp)) {
@@ -699,10 +706,10 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 val statusText = when {
-                                    b.paid -> "Paid Successfully"
+                                    b.paid -> "Completed"
                                     b.status == "Cancelled" -> "Cancelled"
-                                    b.status == "Payment Cancelled" -> "Payment Cancelled"
-                                    else -> b.status
+                                    b.status == "Payment Cancelled" -> "Cancelled"
+                                    else -> "Upcoming"
                                 }
                                 val statusColor = when {
                                     b.paid -> JColors.Primary
@@ -745,6 +752,34 @@ fun OrdersTab(token: String, phone: String, startPayment: (String, Long, String)
                             }
                         }
                     }
+                }
+            }
+        }
+
+        if (!walletMode) {
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = Color(0xFFEAF6EC),
+                border = BorderStroke(1.dp, Color(0xFFD5EDD8)),
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenOffers)
+            ) {
+                Row(
+                    Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFD5EDD8)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🎁", fontSize = 22.sp)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Offers & Coupons", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = JColors.Text)
+                        Text("Save more on your next pickup", fontSize = 12.sp, color = JColors.Subtle)
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = JColors.Primary, modifier = Modifier.size(20.dp))
                 }
             }
         }

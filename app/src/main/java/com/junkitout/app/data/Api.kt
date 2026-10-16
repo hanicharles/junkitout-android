@@ -142,7 +142,8 @@ object Api {
     // ── Bookings & payments ──
     suspend fun createBooking(
         service: String, date: String, slot: String, kg: Int, token: String,
-        addressId: String = "", addressText: String = ""
+        addressId: String = "", addressText: String = "",
+        couponCode: String = "", discountAmount: Double = 0.0
     ): Result<Booking> {
         val body = JSONObject()
             .put("service", service)
@@ -151,11 +152,41 @@ object Api {
             .put("estimatedKg", kg)
             .put("addressId", addressId)
             .put("addressText", addressText)
+            .put("couponCode", couponCode)
+            .put("discountAmount", discountAmount)
         return when (val r = call("POST", "/api/bookings", token, body)) {
             is Result.Ok -> Result.Ok((r.value.optJSONObject("booking") ?: r.value).toBooking())
             is Result.Err -> r
         }
     }
+
+    // ── Offers & Coupons ──
+    suspend fun getOffers(token: String): Result<List<Offer>> =
+        when (val r = call("GET", "/api/offers", token)) {
+            is Result.Ok -> {
+                val arr = r.value.optJSONArray("offers")
+                Result.Ok((0 until (arr?.length() ?: 0)).map { i ->
+                    val o = arr!!.getJSONObject(i)
+                    Offer(
+                        code = o.optString("code"),
+                        title = o.optString("title"),
+                        description = o.optString("description"),
+                        discountType = o.optString("discountType", "percentage"),
+                        discountValue = o.optDouble("discountValue", 0.0),
+                        minOrderValue = o.optDouble("minOrderValue", 0.0),
+                        validTill = o.optString("validTill", "31 Dec 2026"),
+                        tag = o.optString("tag")
+                    )
+                })
+            }
+            is Result.Err -> r
+        }
+
+    suspend fun validateCoupon(code: String, amount: Double, token: String): Result<Pair<Double, Double>> =
+        when (val r = call("POST", "/api/coupons/validate", token, JSONObject().put("code", code).put("amount", amount))) {
+            is Result.Ok -> Result.Ok(Pair(r.value.optDouble("discountAmount"), r.value.optDouble("finalAmount")))
+            is Result.Err -> r
+        }
 
     suspend fun bookings(token: String): Result<List<Booking>> =
         when (val r = call("GET", "/api/bookings", token)) {

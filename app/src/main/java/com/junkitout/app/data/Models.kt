@@ -26,6 +26,17 @@ data class Booking(
 
 data class PaymentOrder(val orderId: String, val amountPaise: Long)
 
+data class Offer(
+    val code: String,
+    val title: String,
+    val description: String,
+    val discountType: String,
+    val discountValue: Double,
+    val minOrderValue: Double,
+    val validTill: String,
+    val tag: String = "",
+)
+
 data class WalletData(
     val balance: Double,
     val totalSpent: Double,

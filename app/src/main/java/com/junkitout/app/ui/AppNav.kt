@@ -110,7 +110,8 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                     nav.navigate("login") { popUpTo(0) { inclusive = true } }
                 },
                 onOpenChat = { nav.navigate("chat") },
-                onOpenWallet = { nav.navigate("wallet") }
+                onOpenOffers = { nav.navigate("offers") },
+                onOpenTransactions = { nav.navigate("transactions") }
             )
         }
         composable("book") {
@@ -118,19 +119,18 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 initialService = bookService, token = token, phone = phone, area = place?.area ?: "your address",
                 startPayment = startPayment,
                 onBack = { nav.popBackStack() },
-                onDone = { nav.popBackStack() }
+                onDone = { nav.popBackStack() },
+                onOpenOffers = { nav.navigate("offers") }
             )
         }
         composable("chat") {
             SupportChatScreen(onBack = { nav.popBackStack() })
         }
-        composable("wallet") {
-            WalletScreen(
-                token = token,
-                onBack = { nav.popBackStack() },
-                onOpenChat = { nav.navigate("chat") },
-                startPayment = startPayment
-            )
+        composable("offers") {
+            OffersScreen(token = token, onBack = { nav.popBackStack() })
+        }
+        composable("transactions") {
+            TransactionsScreen(token = token, onBack = { nav.popBackStack() })
         }
     }
 }

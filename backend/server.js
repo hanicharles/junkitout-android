@@ -233,18 +233,23 @@ const bookingOut = (r) => ({ id: r.id, service: r.service, date: r.date, slot: r
   amount: Number(r.amount), paid: r.paid, addressText: r.address_text || '' });
 
 app.post('/api/bookings', auth, wrap(async (req, res) => {
-  const { service, date, slot, addressId, addressText } = req.body;
+  const { service, date, slot, addressId, addressText, couponCode, discountAmount } = req.body;
   const kg = Number(req.body.estimatedKg);
   if (!RATES[service]) return res.status(400).json({ error: 'Unknown service' });
   if (!SLOTS.includes(slot)) return res.status(400).json({ error: 'Invalid time slot' });
   if (!Number.isInteger(kg) || kg < 1 || kg > 200) return res.status(400).json({ error: 'Weight must be 1-200 kg' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: 'Choose a valid pickup date' });
+
+  const rawAmount = amountFor(service, kg);
+  const disc = Math.min(Number(discountAmount || 0), rawAmount);
+  const finalAmount = Math.max(0, rawAmount - disc);
+
   const id = crypto.randomUUID();
   const { rows } = await db.query(
-    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount, address_text, address_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount, address_text, address_id, coupon_code, discount_amount) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      RETURNING id, service, date, slot, status, amount, paid, address_text`,
-    [id, req.uid, service, date, slot, kg, amountFor(service, kg), String(addressText || '').trim(), addressId || null]);
+    [id, req.uid, service, date, slot, kg, finalAmount, String(addressText || '').trim(), addressId || null, String(couponCode || '').trim(), disc]);
   res.status(201).json({ booking: bookingOut(rows[0]) });
 }));
 
@@ -252,6 +257,56 @@ app.get('/api/bookings', auth, wrap(async (req, res) => {
   const { rows } = await db.query(
     'SELECT id, service, date, slot, status, amount, paid, address_text FROM bookings WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
   res.json({ bookings: rows.map(bookingOut) });
+}));
+
+// ── Offers & Coupons ──
+const OFFERS_LIST = [
+  { code: 'WELCOME10', title: 'WELCOME10', description: 'Get 10% off on your first pickup', discountType: 'percentage', discountValue: 10, minOrderValue: 0, validTill: '31 Dec 2026', tag: 'NEW' },
+  { code: 'RECYCLE20', title: 'RECYCLE20', description: 'Get ₹20 off on orders above ₹100', discountType: 'fixed', discountValue: 20, minOrderValue: 100, validTill: '30 Nov 2026', tag: '' },
+  { code: 'FREEDISPOSAL', title: 'FREEDISPOSAL', description: 'Free pickup on orders above ₹200', discountType: 'fixed', discountValue: 49, minOrderValue: 200, validTill: '31 Dec 2026', tag: '' },
+  { code: 'GREEN15', title: 'GREEN15', description: 'Get 15% off on E-Waste disposal', discountType: 'percentage', discountValue: 15, minOrderValue: 0, validTill: '15 Nov 2026', tag: '' }
+];
+
+app.get('/api/offers', auth, wrap(async (req, res) => {
+  const { rows } = await db.query('SELECT code, title, description, discount_type, discount_value, min_order_value, valid_till FROM offers WHERE is_active = true')
+    .catch(() => ({ rows: [] }));
+  if (!rows || rows.length === 0) {
+    return res.json({ offers: OFFERS_LIST });
+  }
+  res.json({
+    offers: rows.map(r => ({
+      code: r.code,
+      title: r.title,
+      description: r.description,
+      discountType: r.discount_type,
+      discountValue: Number(r.discount_value),
+      minOrderValue: Number(r.min_order_value),
+      validTill: r.valid_till,
+      tag: r.code === 'WELCOME10' ? 'NEW' : ''
+    }))
+  });
+}));
+
+app.post('/api/coupons/validate', auth, wrap(async (req, res) => {
+  const code = String(req.body.code || '').trim().toUpperCase();
+  const subtotal = Number(req.body.amount || 0);
+
+  const offer = OFFERS_LIST.find(o => o.code === code);
+  if (!offer) return res.status(400).json({ error: 'Invalid coupon code' });
+  if (subtotal < offer.minOrderValue) {
+    return res.status(400).json({ error: `Minimum order amount ₹${offer.minOrderValue} required for this coupon` });
+  }
+
+  let discount = 0;
+  if (offer.discountType === 'percentage') {
+    discount = Math.round((subtotal * offer.discountValue) / 100);
+  } else {
+    discount = offer.discountValue;
+  }
+  discount = Math.min(discount, subtotal);
+  const finalAmount = Math.max(0, subtotal - discount);
+
+  res.json({ valid: true, code: offer.code, discountAmount: discount, finalAmount });
 }));
 
 app.put('/api/bookings/:id/cancel', auth, wrap(async (req, res) => {
