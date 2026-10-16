@@ -91,6 +91,9 @@ fun MainScreen(
     onOpenChat: () -> Unit = {},
     onOpenOffers: () -> Unit = {},
     onOpenTransactions: () -> Unit = {},
+    onOpenEditProfile: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
 ) {
     var tab by remember { mutableIntStateOf(0) }
     val ctx = LocalContext.current
@@ -113,16 +116,93 @@ fun MainScreen(
                 0 -> HomeTab(area, city, onChangeLocation, onBook)
                 1 -> OrdersTab(token, phone, startPayment, onOpenOffers = onOpenOffers)
                 3 -> TransactionsScreen(token = token, onBack = { tab = 0 })
-                4 -> MenuTab(phone, name, token, onAddAddress, onNameChanged, onLogout, onOpenOrders = { tab = 1 }, onOpenTransactions = onOpenTransactions, onOpenOffers = onOpenOffers, onOpenChat = onOpenChat)
+                4 -> MenuTab(
+                    phone = phone, name = name, token = token,
+                    onAddAddress = onAddAddress, onNameChanged = onNameChanged, onLogout = onLogout,
+                    onOpenOrders = { tab = 1 }, onOpenTransactions = onOpenTransactions,
+                    onOpenOffers = onOpenOffers, onOpenChat = onOpenChat,
+                    onOpenEditProfile = onOpenEditProfile, onOpenSettings = onOpenSettings, onOpenAbout = onOpenAbout
+                )
             }
         }
     }
 }
 
 // ───────────────────────── 11 Main Home ─────────────────────────
+private data class HeroBannerData(
+    val title: String,
+    val subtitle: String,
+    val gradStart: Color,
+    val gradEnd: Color,
+    val btnBg: Color,
+    val btnText: String = "Book a Pickup"
+)
+
+private val HOME_BANNERS = listOf(
+    HeroBannerData(
+        title = "Small Steps,\nCleaner Streets",
+        subtitle = "Schedule a pickup and keep our city beautiful.",
+        gradStart = Color(0xFF0A3A1C),
+        gradEnd = Color(0xFF145C2F),
+        btnBg = Color(0xFFFFF3E0)
+    ),
+    HeroBannerData(
+        title = "Give Waste\na Second Life",
+        subtitle = "Schedule a pickup and turn waste into a cleaner future.",
+        gradStart = Color(0xFF2E1052),
+        gradEnd = Color(0xFF512DA8),
+        btnBg = Color(0xFFEDE7F6)
+    ),
+    HeroBannerData(
+        title = "A Greener City\nStarts Here",
+        subtitle = "Schedule a pickup and make a positive impact today.",
+        gradStart = Color(0xFF042D30),
+        gradEnd = Color(0xFF00695C),
+        btnBg = Color(0xFFE0F2F1)
+    ),
+    HeroBannerData(
+        title = "Recycle Today,\nRenew Tomorrow",
+        subtitle = "Schedule a pickup and help build a cleaner, greener city.",
+        gradStart = Color(0xFF02322A),
+        gradEnd = Color(0xFF004D40),
+        btnBg = Color(0xFFCCFF90)
+    )
+)
+
 @Composable
 private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, onBook: (String?) -> Unit) {
     val ctx = LocalContext.current
+    var bannerIdx by remember { mutableIntStateOf(0) }
+    var showNotifs by remember { mutableStateOf(false) }
+    var hasUnreadNotifs by remember { mutableStateOf(true) }
+
+    val notifications = remember {
+        listOf(
+            NotificationItem("1", "Booking Confirmed", "Your pickup for E-Waste Disposal has been scheduled.", "Just now", false),
+            NotificationItem("2", "Payment Successful", "Payment of ₹60 verified for Order #JIO12345.", "2 hours ago", false),
+            NotificationItem("3", "Address Saved", "New address 'Banahalli, Bengaluru' added.", "Yesterday", true),
+            NotificationItem("4", "Welcome to Junk-It-Out", "Cleaner homes, greener tomorrow! Use coupon WELCOME10.", "3 days ago", true)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(5000L)
+            bannerIdx = (bannerIdx + 1) % HOME_BANNERS.size
+        }
+    }
+
+    if (showNotifs) {
+        NotificationCenterDialog(
+            notifications = notifications,
+            onDismiss = { showNotifs = false },
+            onMarkAllRead = {
+                hasUnreadNotifs = false
+                Toast.makeText(ctx, "All notifications marked as read", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -147,33 +227,38 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                 }
                 Text(city.ifBlank { "Bengaluru" }, color = JColors.Subtle, fontSize = 12.sp)
             }
-            Box(Modifier.clickable { Toast.makeText(ctx, "No new notifications", Toast.LENGTH_SHORT).show() }) {
+            Box(Modifier.clickable { showNotifs = true }) {
                 Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.Notifications, "Notifications", tint = JColors.Text, modifier = Modifier.size(22.dp))
                 }
-                Box(
-                    Modifier.size(10.dp).clip(CircleShape).background(JColors.Red)
-                        .align(Alignment.TopEnd)
-                )
+                if (hasUnreadNotifs) {
+                    Box(
+                        Modifier.size(10.dp).clip(CircleShape).background(JColors.Red)
+                            .align(Alignment.TopEnd)
+                    )
+                }
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // Hero Banner Card
+        // Hero Banner Carousel
+        val activeBanner = HOME_BANNERS[bannerIdx]
         Surface(
             shape = RoundedCornerShape(22.dp),
-            color = Color(0xFF0A3A1C),
-            modifier = Modifier.fillMaxWidth()
+            color = activeBanner.gradStart,
+            modifier = Modifier.fillMaxWidth().clickable {
+                bannerIdx = (bannerIdx + 1) % HOME_BANNERS.size
+            }
         ) {
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.horizontalGradient(listOf(Color(0xFF093318), Color(0xFF145C2F))))
+                    .background(Brush.horizontalGradient(listOf(activeBanner.gradStart, activeBanner.gradEnd)))
                     .padding(18.dp)
             ) {
-                Column(Modifier.fillMaxWidth(0.65f)) {
+                Column(Modifier.fillMaxWidth(0.68f)) {
                     Text(
-                        "Let's Recycle\nFor a Cleaner\nTomorrow",
+                        activeBanner.title,
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -181,7 +266,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Schedule a pickup and make your city greener.",
+                        activeBanner.subtitle,
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -189,16 +274,16 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     Spacer(Modifier.height(14.dp))
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFF2E9A50),
+                        color = activeBanner.btnBg,
                         modifier = Modifier.clickable { onBook(null) }
                     ) {
                         Row(
                             Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Book a Pickup", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(activeBanner.btnText, color = Color(0xFF10251C), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             Spacer(Modifier.width(6.dp))
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color(0xFF10251C), modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -210,13 +295,16 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
 
         // Carousel Indicator Dots
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(JColors.Primary))
-            Spacer(Modifier.width(4.dp))
-            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
-            Spacer(Modifier.width(4.dp))
-            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
-            Spacer(Modifier.width(4.dp))
-            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFD5EDD8)))
+            HOME_BANNERS.indices.forEach { idx ->
+                val isActive = idx == bannerIdx
+                Box(
+                    Modifier.size(width = if (isActive) 18.dp else 6.dp, height = 6.dp)
+                        .clip(CircleShape)
+                        .background(if (isActive) JColors.Primary else Color(0xFFD5EDD8))
+                        .clickable { bannerIdx = idx }
+                )
+                if (idx < HOME_BANNERS.size - 1) Spacer(Modifier.width(4.dp))
+            }
         }
 
         Spacer(Modifier.height(18.dp))
@@ -231,50 +319,50 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
         Spacer(Modifier.height(12.dp))
 
         // 2x2 Services Grid
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            RichServiceCard(
-                title = "E-Waste\nDisposal",
-                subtitle = "Old electronics,\nIT equipment",
-                iconText = "💻",
-                cardBg = Color(0xFFEAF6EC),
-                arrowBg = Color(0xFFD5EDD8),
-                arrowTint = JColors.Primary,
-                modifier = Modifier.weight(1f)
-            ) { onBook("E-Waste Disposal") }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RichServiceCard(
+                    title = "E-Waste\nDisposal",
+                    subtitle = "Old electronics,\nIT equipment",
+                    iconText = "💻",
+                    cardBg = Color(0xFFEAF6EC),
+                    arrowBg = Color(0xFFD5EDD8),
+                    arrowTint = JColors.Primary,
+                    modifier = Modifier.weight(1f)
+                ) { onBook("E-Waste Disposal") }
 
-            RichServiceCard(
-                title = "Household\nDry Waste",
-                subtitle = "Paper, metal,\nglass, etc.",
-                iconText = "🥫",
-                cardBg = Color(0xFFFDF7EE),
-                arrowBg = Color(0xFFFDE8D0),
-                arrowTint = Color(0xFFE57A2E),
-                modifier = Modifier.weight(1f)
-            ) { onBook("Household Dry Waste") }
-        }
+                RichServiceCard(
+                    title = "Household\nDry Waste",
+                    subtitle = "Paper, metal,\nglass, etc.",
+                    iconText = "🥫",
+                    cardBg = Color(0xFFFDF7EE),
+                    arrowBg = Color(0xFFFDE8D0),
+                    arrowTint = Color(0xFFE57A2E),
+                    modifier = Modifier.weight(1f)
+                ) { onBook("Household Dry Waste") }
+            }
 
-        Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RichServiceCard(
+                    title = "Paper &\nCardboard",
+                    subtitle = "Newspapers,\ncartons, boxes",
+                    iconText = "📦",
+                    cardBg = Color(0xFFF4F7EE),
+                    arrowBg = Color(0xFFE2EDCE),
+                    arrowTint = Color(0xFF3DA35D),
+                    modifier = Modifier.weight(1f)
+                ) { onBook("Paper & Cardboard") }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            RichServiceCard(
-                title = "Paper &\nCardboard",
-                subtitle = "Newspapers,\ncartons, boxes",
-                iconText = "📦",
-                cardBg = Color(0xFFF7FAEE),
-                arrowBg = Color(0xFFE8F5D8),
-                arrowTint = Color(0xFF3DA35D),
-                modifier = Modifier.weight(1f)
-            ) { onBook("Paper & Cardboard") }
-
-            RichServiceCard(
-                title = "Plastic\nWaste",
-                subtitle = "Bottles, containers,\npackaging",
-                iconText = "🧴",
-                cardBg = Color(0xFFEDF5FD),
-                arrowBg = Color(0xFFD8E9F8),
-                arrowTint = Color(0xFF2F80ED),
-                modifier = Modifier.weight(1f)
-            ) { onBook("Plastic Waste") }
+                RichServiceCard(
+                    title = "Plastic\nWaste",
+                    subtitle = "Bottles, containers,\npackaging",
+                    iconText = "🧴",
+                    cardBg = Color(0xFFEDF5FD),
+                    arrowBg = Color(0xFFD0E3F7),
+                    arrowTint = Color(0xFF2F80ED),
+                    modifier = Modifier.weight(1f)
+                ) { onBook("Plastic Waste") }
+            }
         }
 
         Spacer(Modifier.height(18.dp))
@@ -426,11 +514,10 @@ private fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick
 private fun MenuTab(
     phone: String, name: String, token: String, onAddAddress: () -> Unit, onNameChanged: (String) -> Unit, onLogout: () -> Unit,
     onOpenOrders: () -> Unit, onOpenTransactions: () -> Unit, onOpenOffers: () -> Unit, onOpenChat: () -> Unit,
+    onOpenEditProfile: () -> Unit = {}, onOpenSettings: () -> Unit = {}, onOpenAbout: () -> Unit = {}
 ) {
     val shown = if (phone.length == 10) "+91 ${phone.take(5)} ${phone.drop(5)}" else "+91 $phone"
     val ctx = LocalContext.current
-    var nameDraft by remember { mutableStateOf(name.ifBlank { "Junk-It-Out User" }) }
-    val scope = rememberCoroutineScope()
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -442,7 +529,7 @@ private fun MenuTab(
                 Text("Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JColors.Text)
                 Text("Manage your account and preferences", fontSize = 13.sp, color = JColors.Subtle)
             }
-            IconButton(onClick = { Toast.makeText(ctx, "Settings", Toast.LENGTH_SHORT).show() }) {
+            IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Filled.Settings, "Settings", tint = JColors.Text, modifier = Modifier.size(22.dp))
             }
         }
@@ -455,11 +542,7 @@ private fun MenuTab(
             color = Color.White,
             shadowElevation = 1.dp,
             border = BorderStroke(1.dp, JColors.Border),
-            modifier = Modifier.fillMaxWidth().clickable {
-                scope.launch {
-                    Api.updateName(nameDraft.trim(), token)
-                }
-            }
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenEditProfile)
         ) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(contentAlignment = Alignment.BottomEnd) {
@@ -478,7 +561,7 @@ private fun MenuTab(
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(nameDraft, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text)
+                    Text(name.ifBlank { "Junk-It-Out User" }, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = JColors.Text)
                     Spacer(Modifier.height(2.dp))
                     Text(shown, fontSize = 13.sp, color = JColors.Subtle)
                     Spacer(Modifier.height(4.dp))
@@ -498,20 +581,14 @@ private fun MenuTab(
 
         // Profile Menu Items List
         val items = listOf(
-            ProfileMenuItem(Icons.Filled.Edit, "Edit Profile", "Update your name, email and photo", {
-                Toast.makeText(ctx, "Edit Profile", Toast.LENGTH_SHORT).show()
-            }),
+            ProfileMenuItem(Icons.Filled.Edit, "Edit Profile", "Update your name, email and photo", onOpenEditProfile),
             ProfileMenuItem(Icons.Filled.LocationOn, "My Addresses", "Manage your saved addresses", onAddAddress),
             ProfileMenuItem(Icons.Filled.Receipt, "My Orders", "View and track your pickups", onOpenOrders),
             ProfileMenuItem(Icons.Filled.AccountBalance, "Transaction History", "View all payments and refunds", onOpenTransactions),
             ProfileMenuItem(Icons.Filled.LocalOffer, "Offers & Coupons", "View available offers and apply coupons", onOpenOffers),
             ProfileMenuItem(Icons.Filled.Help, "Support & Chatbot", "Get help or chat with us", onOpenChat),
-            ProfileMenuItem(Icons.Filled.Info, "About Us", "Learn more about Junk-It-Out", {
-                Toast.makeText(ctx, "Junk-It-Out v1.0 - Cleaner homes, greener tomorrow", Toast.LENGTH_SHORT).show()
-            }),
-            ProfileMenuItem(Icons.Filled.Settings, "App Settings", "Notifications, language and more", {
-                Toast.makeText(ctx, "App Settings", Toast.LENGTH_SHORT).show()
-            }),
+            ProfileMenuItem(Icons.Filled.Info, "About Us", "Learn more about Junk-It-Out", onOpenAbout),
+            ProfileMenuItem(Icons.Filled.Settings, "App Settings", "Notifications, language and more", onOpenSettings),
         )
 
         Surface(

@@ -26,6 +26,10 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
         )
     }
     var bookService by remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf("") }
+    var photoUri by remember { mutableStateOf("") }
+    var notifsEnabled by remember { mutableStateOf(true) }
+    var locationEnabled by remember { mutableStateOf(true) }
 
     fun goHome() = nav.navigate("home") { popUpTo(0) { inclusive = true } }
 
@@ -96,6 +100,7 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
         composable("saved") {
             AddressSavedScreen { goHome() }
         }
+
         composable("home") {
             MainScreen(
                 area = place?.area ?: "Select location", city = place?.city ?: "Bengaluru",
@@ -111,8 +116,35 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                 },
                 onOpenChat = { nav.navigate("chat") },
                 onOpenOffers = { nav.navigate("offers") },
-                onOpenTransactions = { nav.navigate("transactions") }
+                onOpenTransactions = { nav.navigate("transactions") },
+                onOpenEditProfile = { nav.navigate("edit_profile") },
+                onOpenSettings = { nav.navigate("settings") },
+                onOpenAbout = { nav.navigate("about") }
             )
+        }
+        composable("edit_profile") {
+            EditProfileScreen(
+                phone = phone, name = name, email = email, photoUriStr = photoUri, token = token,
+                onBack = { nav.popBackStack() },
+                onProfileUpdated = { newName, newEmail, newPhoto ->
+                    name = newName
+                    session.name = newName
+                    email = newEmail
+                    photoUri = newPhoto
+                }
+            )
+        }
+        composable("settings") {
+            AppSettingsScreen(
+                notificationsEnabled = notifsEnabled,
+                locationEnabled = locationEnabled,
+                onToggleNotifications = { notifsEnabled = it },
+                onToggleLocation = { locationEnabled = it },
+                onBack = { nav.popBackStack() }
+            )
+        }
+        composable("about") {
+            AboutUsScreen(onBack = { nav.popBackStack() })
         }
         composable("book") {
             BookingScreen(

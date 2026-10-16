@@ -59,6 +59,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
     implementation("com.razorpay:checkout:1.6.40")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.maps.android:maps-compose:4.4.1")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
