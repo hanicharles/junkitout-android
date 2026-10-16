@@ -109,7 +109,8 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
                     session.clear(); token = ""; name = ""; phone = ""; place = null
                     nav.navigate("login") { popUpTo(0) { inclusive = true } }
                 },
-                onOpenChat = { nav.navigate("chat") }
+                onOpenChat = { nav.navigate("chat") },
+                onOpenWallet = { nav.navigate("wallet") }
             )
         }
         composable("book") {
@@ -122,6 +123,14 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
         }
         composable("chat") {
             SupportChatScreen(onBack = { nav.popBackStack() })
+        }
+        composable("wallet") {
+            WalletScreen(
+                token = token,
+                onBack = { nav.popBackStack() },
+                onOpenChat = { nav.navigate("chat") },
+                startPayment = startPayment
+            )
         }
     }
 }

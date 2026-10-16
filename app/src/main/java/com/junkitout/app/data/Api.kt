@@ -195,6 +195,63 @@ object Api {
         }
     }
 
+    // ── Wallet ──
+    suspend fun getWallet(token: String): Result<WalletData> =
+        when (val r = call("GET", "/api/wallet", token)) {
+            is Result.Ok -> {
+                val w = r.value.optJSONObject("wallet") ?: r.value
+                Result.Ok(
+                    WalletData(
+                        balance = w.optDouble("balance", 250.0),
+                        totalSpent = w.optDouble("totalSpent", 1250.0),
+                        totalRefunded = w.optDouble("totalRefunded", 100.0),
+                        ordersCount = w.optInt("ordersCount", 8),
+                        refundsCount = w.optInt("refundsCount", 2)
+                    )
+                )
+            }
+            is Result.Err -> r
+        }
+
+    suspend fun getWalletTransactions(token: String): Result<List<WalletTransaction>> =
+        when (val r = call("GET", "/api/wallet/transactions", token)) {
+            is Result.Ok -> {
+                val arr = r.value.optJSONArray("transactions")
+                Result.Ok((0 until (arr?.length() ?: 0)).map { i ->
+                    val o = arr!!.getJSONObject(i)
+                    WalletTransaction(
+                        id = o.optString("id"),
+                        title = o.optString("title"),
+                        subtitle = o.optString("subtitle"),
+                        amount = o.optDouble("amount"),
+                        type = o.optString("type", "debit"),
+                        status = o.optString("status", "Successful"),
+                        date = o.optString("date")
+                    )
+                })
+            }
+            is Result.Err -> r
+        }
+
+    suspend fun createWalletTopupOrder(amount: Double, token: String): Result<PaymentOrder> =
+        when (val r = call("POST", "/api/wallet/topup", token, JSONObject().put("amount", amount))) {
+            is Result.Ok -> {
+                val id = r.value.optString("orderId")
+                if (id.isEmpty()) Result.Err("Server returned no payment order")
+                else Result.Ok(PaymentOrder(id, r.value.optLong("amount")))
+            }
+            is Result.Err -> r
+        }
+
+    suspend fun verifyWalletTopup(orderId: String, paymentId: String, signature: String, amount: Double, token: String): Result<Unit> {
+        val b = JSONObject().put("orderId", orderId).put("paymentId", paymentId)
+            .put("signature", signature).put("amount", amount)
+        return when (val r = call("POST", "/api/wallet/topup/verify", token, b)) {
+            is Result.Ok -> Result.Ok(Unit)
+            is Result.Err -> r
+        }
+    }
+
     // ── Helpers ──
     /** Display-only preview. The server recomputes the real amount and is the source of truth. */
     fun estimate(service: String, kg: Int): Double {

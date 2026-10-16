@@ -26,6 +26,24 @@ data class Booking(
 
 data class PaymentOrder(val orderId: String, val amountPaise: Long)
 
+data class WalletData(
+    val balance: Double,
+    val totalSpent: Double,
+    val totalRefunded: Double,
+    val ordersCount: Int,
+    val refundsCount: Int,
+)
+
+data class WalletTransaction(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val amount: Double,
+    val type: String,
+    val status: String,
+    val date: String,
+)
+
 /** Result wrapper so screens can show real errors instead of crashing. */
 sealed class Result<out T> {
     data class Ok<T>(val value: T) : Result<T>()

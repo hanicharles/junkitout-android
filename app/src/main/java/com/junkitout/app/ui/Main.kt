@@ -85,6 +85,7 @@ fun MainScreen(
     onBook: (service: String?) -> Unit,
     onChangeLocation: () -> Unit, onAddAddress: () -> Unit, onNameChanged: (String) -> Unit, onLogout: () -> Unit,
     onOpenChat: () -> Unit = {},
+    onOpenWallet: () -> Unit = {},
 ) {
     var tab by remember { mutableIntStateOf(0) }
     val ctx = LocalContext.current
@@ -95,7 +96,9 @@ fun MainScreen(
         bottomBar = {
             BottomBar(
                 selected = tab,
-                onSelect = { tab = it },
+                onSelect = {
+                    if (it == 3) onOpenWallet() else tab = it
+                },
                 onBook = { onBook(null) }
             )
         }
@@ -105,7 +108,7 @@ fun MainScreen(
                 0 -> HomeTab(area, city, onChangeLocation, onBook)
                 1 -> OrdersTab(token, phone, startPayment)
                 3 -> OrdersTab(token, phone, startPayment, walletMode = true)
-                4 -> MenuTab(phone, name, token, onAddAddress, onNameChanged, onLogout, onOpenOrders = { tab = 1 }, onOpenWallet = { tab = 3 }, onOpenChat = onOpenChat)
+                4 -> MenuTab(phone, name, token, onAddAddress, onNameChanged, onLogout, onOpenOrders = { tab = 1 }, onOpenWallet = onOpenWallet, onOpenChat = onOpenChat)
             }
         }
     }

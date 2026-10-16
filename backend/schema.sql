@@ -29,6 +29,27 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 CREATE INDEX IF NOT EXISTS bookings_user_idx ON bookings(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS bookings_order_idx ON bookings(razorpay_order_id);
+
+CREATE TABLE IF NOT EXISTS wallets (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  balance numeric(10,2) NOT NULL DEFAULT 0.00,
+  currency text NOT NULL DEFAULT 'INR',
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  subtitle text NOT NULL DEFAULT '',
+  amount numeric(10,2) NOT NULL,
+  type text NOT NULL DEFAULT 'debit',
+  status text NOT NULL DEFAULT 'Successful',
+  reference_id text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS wallet_tx_user_idx ON wallet_transactions(user_id, created_at DESC);
+
 -- Areas you serve. Add rows to open a new area (keyword matches pincode exactly or area name by substring).
 CREATE TABLE IF NOT EXISTS service_areas (keyword text PRIMARY KEY);
 INSERT INTO service_areas(keyword) VALUES
