@@ -7,8 +7,11 @@ import com.junkitout.app.data.Result
 import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -360,6 +363,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFEDF5FD),
                     arrowBg = Color(0xFFD0E3F7),
                     arrowTint = Color(0xFF2F80ED),
+                    imageRes = com.junkitout.app.R.drawable.img_plastic_waste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Plastic Waste") }
             }
@@ -422,6 +426,7 @@ private fun RichServiceCard(
     arrowBg: Color,
     arrowTint: Color,
     modifier: Modifier,
+    imageRes: Int? = null,
     onClick: () -> Unit
 ) {
     Surface(
@@ -431,7 +436,17 @@ private fun RichServiceCard(
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                Text(iconText, fontSize = 36.sp, modifier = Modifier.weight(1f))
+                if (imageRes != null) {
+                    Image(
+                        painter = painterResource(imageRes),
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                    )
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    Text(iconText, fontSize = 36.sp, modifier = Modifier.weight(1f))
+                }
                 Box(
                     Modifier.size(28.dp).clip(CircleShape).background(arrowBg),
                     contentAlignment = Alignment.Center
