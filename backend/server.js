@@ -255,7 +255,8 @@ app.post('/api/bookings', auth, wrap(async (req, res) => {
 
 app.get('/api/bookings', auth, wrap(async (req, res) => {
   const { rows } = await db.query(
-    'SELECT id, service, date, slot, status, amount, paid, address_text FROM bookings WHERE user_id = $1 ORDER BY created_at DESC', [req.uid]);
+    `SELECT id, service, date, slot, status, amount, paid, address_text FROM bookings
+     WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' ORDER BY created_at DESC`, [req.uid]);
   res.json({ bookings: rows.map(bookingOut) });
 }));
 
@@ -386,7 +387,8 @@ app.get('/api/wallet', auth, wrap(async (req, res) => {
 
 app.get('/api/wallet/transactions', auth, wrap(async (req, res) => {
   const { rows: wRows } = await db.query(
-    'SELECT id, title, subtitle, amount, type, status, created_at FROM wallet_transactions WHERE user_id = $1 ORDER BY created_at DESC',
+    `SELECT id, title, subtitle, amount, type, status, created_at FROM wallet_transactions
+     WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' ORDER BY created_at DESC`,
     [req.uid]
   ).catch(() => ({ rows: [] }));
 
@@ -404,9 +406,10 @@ app.get('/api/wallet/transactions', auth, wrap(async (req, res) => {
     });
   }
 
-  // Fetch real payment transactions from user's actual bookings
+  // Fetch real payment transactions from user's actual bookings (last 30 days)
   const { rows: bRows } = await db.query(
-    'SELECT id, service, amount, paid, status, created_at FROM bookings WHERE user_id = $1 ORDER BY created_at DESC',
+    `SELECT id, service, amount, paid, status, created_at FROM bookings
+     WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' ORDER BY created_at DESC`,
     [req.uid]
   ).catch(() => ({ rows: [] }));
 
@@ -455,6 +458,22 @@ app.post('/api/wallet/topup/verify', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── 30-Day Automated Data Retention Cleanup ──
+// Customer Profiles (users) and Saved Addresses (addresses) are kept permanently.
+// Bookings (orders) and Wallet/Payment Transactions older than 30 days are automatically purged.
+async function cleanupExpiredData() {
+  try {
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { rowCount: bCnt } = await db.query('DELETE FROM bookings WHERE created_at < $1', [cutoff]).catch(() => ({ rowCount: 0 }));
+    const { rowCount: tCnt } = await db.query('DELETE FROM wallet_transactions WHERE created_at < $1', [cutoff]).catch(() => ({ rowCount: 0 }));
+    if (bCnt > 0 || tCnt > 0) {
+      console.log(`[30-Day Auto-Cleanup] Purged ${bCnt} expired bookings and ${tCnt} expired transactions older than 30 days.`);
+    }
+  } catch (err) {
+    console.warn('[30-Day Auto-Cleanup Error]:', err.message);
+  }
+}
+
 // ── Boot: create tables, then listen ──
 (async () => {
   try {
@@ -480,6 +499,11 @@ app.post('/api/wallet/topup/verify', auth, wrap(async (req, res) => {
     db = new MemPool();
   }
   await db.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+
+  // Run 30-day auto-cleanup on startup and schedule every 1 hour
+  cleanupExpiredData();
+  setInterval(cleanupExpiredData, 60 * 60 * 1000);
+
   const port = Number(env.PORT) || 3000;
   app.listen(port, '0.0.0.0', () => console.log(`Junk It Out API on :${port}`));
 })().catch((e) => { console.error('Startup failed:', e.message); process.exit(1); });
