@@ -700,6 +700,29 @@ fun OrdersTab(
                                 Spacer(Modifier.height(2.dp))
                                 Text("📍 ${b.addressText}", color = JColors.Subtle, fontSize = 12.sp)
                             }
+
+                            // Pickup OTP Card for Customer Handshake
+                            if (b.status != "Cancelled") {
+                                Spacer(Modifier.height(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFFEAF6EC),
+                                    border = BorderStroke(1.dp, Color(0xFFD5EDD8)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("🔑 Pickup OTP:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = JColors.Primary)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(b.pickupOtp, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JColors.Text)
+                                        Spacer(Modifier.weight(1f))
+                                        Text("Share with collector on arrival", fontSize = 10.sp, color = JColors.Subtle)
+                                    }
+                                }
+                            }
+
                             Spacer(Modifier.height(10.dp))
                             Box(Modifier.fillMaxWidth().height(1.dp).background(JColors.Border.copy(alpha = 0.6f)))
                             Spacer(Modifier.height(10.dp))

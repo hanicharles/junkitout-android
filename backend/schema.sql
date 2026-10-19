@@ -16,6 +16,18 @@ CREATE TABLE IF NOT EXISTS addresses (
   lat double precision, lng double precision,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS drivers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone text UNIQUE NOT NULL,
+  name text NOT NULL DEFAULT '',
+  vehicle_number text NOT NULL DEFAULT 'KA-01-EA-2026',
+  service_area text NOT NULL DEFAULT 'Bengaluru',
+  status text NOT NULL DEFAULT 'online',
+  current_lat double precision DEFAULT 12.9141,
+  current_lng double precision DEFAULT 77.6412,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS bookings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -27,10 +39,15 @@ CREATE TABLE IF NOT EXISTS bookings (
   coupon_code text NOT NULL DEFAULT '',
   discount_amount numeric(10,2) NOT NULL DEFAULT 0.00,
   razorpay_order_id text, razorpay_payment_id text,
+  driver_id uuid REFERENCES drivers(id),
+  pickup_otp text NOT NULL DEFAULT '1234',
+  actual_kg integer,
+  completed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS bookings_user_idx ON bookings(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS bookings_order_idx ON bookings(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS bookings_driver_idx ON bookings(driver_id);
 
 CREATE TABLE IF NOT EXISTS offers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

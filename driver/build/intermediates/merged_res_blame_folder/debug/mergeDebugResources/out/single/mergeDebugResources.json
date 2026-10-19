@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_img_ewaste.jpg.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/img_ewaste.jpg"
+    },
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_img_plastic_waste.jpg.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/img_plastic_waste.jpg"
+    },
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_app_logo.png.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/app_logo.png"
+    },
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_img_paper_waste.jpg.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/img_paper_waste.jpg"
+    },
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_img_household_dry.jpg.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/img_household_dry.jpg"
+    },
+    {
+        "merged": "com.junkitout.driver-debug-60:/drawable_ic_launcher.png.flat",
+        "source": "com.junkitout.driver-main-62:/drawable/ic_launcher.png"
+    }
+]

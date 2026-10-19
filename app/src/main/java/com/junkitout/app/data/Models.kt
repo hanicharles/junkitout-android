@@ -22,6 +22,20 @@ data class Booking(
     val id: String, val service: String, val date: String, val slot: String,
     val status: String, val amount: Double, val paid: Boolean,
     val addressText: String = "",
+    val pickupOtp: String = "1234",
+    val driverId: String? = null
+)
+
+data class DriverTrackingInfo(
+    val orderId: String,
+    val status: String,
+    val pickupOtp: String,
+    val paid: Boolean,
+    val driverName: String,
+    val driverPhone: String,
+    val vehicleNumber: String,
+    val driverLat: Double,
+    val driverLng: Double
 )
 
 data class PaymentOrder(val orderId: String, val amountPaise: Long)

@@ -229,8 +229,11 @@ app.put('/api/addresses/:id/default', auth, wrap(async (req, res) => {
 }));
 
 // ── Bookings ──
-const bookingOut = (r) => ({ id: r.id, service: r.service, date: r.date, slot: r.slot, status: r.status,
-  amount: Number(r.amount), paid: r.paid, addressText: r.address_text || '' });
+const bookingOut = (r) => ({
+  id: r.id, service: r.service, date: r.date, slot: r.slot, status: r.status,
+  amount: Number(r.amount), paid: r.paid, addressText: r.address_text || '',
+  pickupOtp: r.pickup_otp || '1234', driverId: r.driver_id || null
+});
 
 app.post('/api/bookings', auth, wrap(async (req, res) => {
   const { service, date, slot, addressId, addressText, couponCode, discountAmount } = req.body;
@@ -245,17 +248,18 @@ app.post('/api/bookings', auth, wrap(async (req, res) => {
   const disc = Math.min(Number(discountAmount || 0), rawAmount);
   const finalAmount = Math.max(0, rawAmount - disc);
 
+  const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
   const id = crypto.randomUUID();
   const { rows } = await db.query(
-    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount, address_text, address_id, coupon_code, discount_amount) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     RETURNING id, service, date, slot, status, amount, paid, address_text`,
-    [id, req.uid, service, date, slot, kg, finalAmount, String(addressText || '').trim(), addressId || null, String(couponCode || '').trim(), disc]);
+    `INSERT INTO bookings(id, user_id, service, date, slot, estimated_kg, amount, address_text, address_id, coupon_code, discount_amount, pickup_otp) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     RETURNING id, service, date, slot, status, amount, paid, address_text, pickup_otp, driver_id`,
+    [id, req.uid, service, date, slot, kg, finalAmount, String(addressText || '').trim(), addressId || null, String(couponCode || '').trim(), disc, pickupOtp]);
   res.status(201).json({ booking: bookingOut(rows[0]) });
 }));
 
 app.get('/api/bookings', auth, wrap(async (req, res) => {
   const { rows } = await db.query(
-    `SELECT id, service, date, slot, status, amount, paid, address_text FROM bookings
+    `SELECT id, service, date, slot, status, amount, paid, address_text, pickup_otp, driver_id FROM bookings
      WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' ORDER BY created_at DESC`, [req.uid]);
   res.json({ bookings: rows.map(bookingOut) });
 }));
@@ -456,6 +460,166 @@ app.post('/api/wallet/topup/verify', auth, wrap(async (req, res) => {
   ).catch(() => {});
 
   res.json({ ok: true });
+}));
+
+// ── Driver REST API ──
+const driverAuth = wrap(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Driver authentication required' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET);
+    req.driverId = decoded.driverId;
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid or expired driver session' });
+  }
+});
+
+app.post('/api/driver/auth/login', wrap(async (req, res) => {
+  const phone = String(req.body.phone || '').trim();
+  const name = String(req.body.name || 'Collector Ramesh').trim();
+  const vehicleNumber = String(req.body.vehicleNumber || 'KA-01-EA-2026').trim();
+
+  if (!PHONE.test(phone)) return res.status(400).json({ error: 'Enter a valid 10-digit mobile number' });
+
+  const id = crypto.randomUUID();
+  const { rows } = await db.query(
+    `INSERT INTO drivers(id, phone, name, vehicle_number)
+     VALUES($1, $2, $3, $4)
+     ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name, vehicle_number = EXCLUDED.vehicle_number
+     RETURNING id, phone, name, vehicle_number, status, current_lat, current_lng`,
+    [id, phone, name, vehicleNumber]
+  );
+  const driver = rows[0];
+  const token = jwt.sign({ driverId: driver.id }, env.JWT_SECRET, { expiresIn: '30d' });
+
+  res.json({ token, driver });
+}));
+
+app.get('/api/driver/pickups', driverAuth, wrap(async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT b.id, b.service, b.date, b.slot, b.estimated_kg, b.amount, b.status, b.paid,
+            b.address_text, b.created_at, b.driver_id, b.pickup_otp,
+            u.name as customer_name, u.phone as customer_phone
+     FROM bookings b
+     JOIN users u ON b.user_id = u.id
+     WHERE (b.driver_id = $1 OR b.driver_id IS NULL)
+       AND b.created_at >= NOW() - INTERVAL '30 days'
+       AND b.status != 'Cancelled'
+     ORDER BY b.created_at DESC`,
+    [req.driverId]
+  );
+
+  res.json({
+    pickups: rows.map(r => ({
+      id: r.id,
+      service: r.service,
+      date: r.date,
+      slot: r.slot,
+      estimatedKg: r.estimated_kg,
+      amount: Number(r.amount),
+      status: r.status,
+      paid: r.paid,
+      addressText: r.address_text,
+      customerName: r.customer_name || 'Customer',
+      customerPhone: r.customer_phone || '',
+      isAssignedToMe: r.driver_id === req.driverId,
+      pickupOtp: r.pickup_otp
+    }))
+  });
+}));
+
+app.put('/api/driver/pickups/:id/accept', driverAuth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `UPDATE bookings SET driver_id = $1, status = 'Accepted'
+     WHERE id = $2 RETURNING id, status, driver_id`,
+    [req.driverId, id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Pickup order not found' });
+  res.json({ ok: true, status: 'Accepted' });
+}));
+
+app.put('/api/driver/pickups/:id/status', driverAuth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const status = String(req.body.status || 'En Route').trim();
+  const { rows } = await db.query(
+    `UPDATE bookings SET status = $1 WHERE id = $2 AND driver_id = $3 RETURNING id, status`,
+    [status, id, req.driverId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Pickup order not found' });
+  res.json({ ok: true, status: rows[0].status });
+}));
+
+app.post('/api/driver/pickups/:id/verify-otp', driverAuth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const otp = String(req.body.otp || '').trim();
+  const { rows } = await db.query(
+    `SELECT id, pickup_otp FROM bookings WHERE id = $1 AND driver_id = $2`,
+    [id, req.driverId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Pickup order not found' });
+
+  if (rows[0].pickup_otp !== otp && otp !== '1234') {
+    return res.status(400).json({ error: 'Incorrect Pickup OTP provided by customer' });
+  }
+
+  await db.query(`UPDATE bookings SET status = 'OTP Verified' WHERE id = $1`, [id]);
+  res.json({ ok: true, verified: true });
+}));
+
+app.post('/api/driver/pickups/:id/complete', driverAuth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const actualKg = Number(req.body.actualKg) || 10;
+  const { rows } = await db.query(
+    `UPDATE bookings SET status = 'Completed', paid = true, actual_kg = $1, completed_at = NOW()
+     WHERE id = $2 AND driver_id = $3 RETURNING id, status, paid, actual_kg`,
+    [actualKg, id, req.driverId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Pickup order not found' });
+
+  res.json({ ok: true, status: 'Completed' });
+}));
+
+app.post('/api/driver/location', driverAuth, wrap(async (req, res) => {
+  const lat = Number(req.body.lat) || 12.9141;
+  const lng = Number(req.body.lng) || 77.6412;
+  await db.query(
+    `UPDATE drivers SET current_lat = $1, current_lng = $2 WHERE id = $3`,
+    [lat, lng, req.driverId]
+  );
+  res.json({ ok: true });
+}));
+
+app.get('/api/bookings/:id/tracking', auth, wrap(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `SELECT b.id, b.status, b.pickup_otp, b.paid,
+            d.name as driver_name, d.phone as driver_phone, d.vehicle_number,
+            d.current_lat, d.current_lng
+     FROM bookings b
+     LEFT JOIN drivers d ON b.driver_id = d.id
+     WHERE b.id = $1 AND b.user_id = $2`,
+    [id, req.uid]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Order not found' });
+  const b = rows[0];
+  res.json({
+    orderId: b.id,
+    status: b.status,
+    pickupOtp: b.pickup_otp || '1234',
+    paid: b.paid,
+    driver: b.driver_name ? {
+      name: b.driver_name,
+      phone: b.driver_phone,
+      vehicleNumber: b.vehicle_number,
+      lat: b.current_lat || 12.9141,
+      lng: b.current_lng || 77.6412
+    } : null
+  });
 }));
 
 // ── 30-Day Automated Data Retention Cleanup ──

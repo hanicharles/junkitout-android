@@ -294,8 +294,30 @@ object Api {
     private fun JSONObject.toBooking() = Booking(
         optString("id"), optString("service"), optString("date"), optString("slot"),
         optString("status", "Scheduled"), optDouble("amount", 0.0), optBoolean("paid", false),
-        optString("addressText")
+        optString("addressText"), optString("pickupOtp", "1234"),
+        optString("driverId").takeIf { it.isNotBlank() }
     )
+
+    suspend fun getOrderTracking(orderId: String, token: String): Result<DriverTrackingInfo> =
+        when (val r = call("GET", "/api/bookings/$orderId/tracking", token)) {
+            is Result.Ok -> {
+                val d = r.value.optJSONObject("driver")
+                Result.Ok(
+                    DriverTrackingInfo(
+                        orderId = r.value.optString("orderId"),
+                        status = r.value.optString("status"),
+                        pickupOtp = r.value.optString("pickupOtp", "1234"),
+                        paid = r.value.optBoolean("paid", false),
+                        driverName = d?.optString("name") ?: "Collector Ramesh",
+                        driverPhone = d?.optString("phone") ?: "9591225555",
+                        vehicleNumber = d?.optString("vehicleNumber") ?: "KA-01-EA-2026",
+                        driverLat = d?.optDouble("lat", 12.9141) ?: 12.9141,
+                        driverLng = d?.optDouble("lng", 77.6412) ?: 77.6412
+                    )
+                )
+            }
+            is Result.Err -> r
+        }
     private fun <T> JSONArray?.toList(f: (JSONObject) -> T): List<T> =
         if (this == null) emptyList() else (0 until length()).map { f(getJSONObject(it)) }
 }

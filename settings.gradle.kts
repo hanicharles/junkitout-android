@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Junk-It-Out"
 include(":app")
+include(":driver")

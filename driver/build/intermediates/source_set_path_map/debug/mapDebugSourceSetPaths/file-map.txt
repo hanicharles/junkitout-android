@@ -1,0 +1,63 @@
+com.junkitout.driver-runtime-release-0 /home/hanicharles/.gradle/caches/transforms-4/06c3170746c2eac97a8eec0026d54956/transformed/runtime-release/res
+com.junkitout.driver-activity-compose-1.9.0-1 /home/hanicharles/.gradle/caches/transforms-4/07470b6720a54775a1f46bdb03c88a9f/transformed/activity-compose-1.9.0/res
+com.junkitout.driver-foundation-layout-release-2 /home/hanicharles/.gradle/caches/transforms-4/12587a5d877080ee684bdbc4e928689e/transformed/foundation-layout-release/res
+com.junkitout.driver-lifecycle-viewmodel-savedstate-2.8.3-3 /home/hanicharles/.gradle/caches/transforms-4/16391f70466ae31faa0df130f0570e7e/transformed/lifecycle-viewmodel-savedstate-2.8.3/res
+com.junkitout.driver-emoji2-1.3.0-4 /home/hanicharles/.gradle/caches/transforms-4/192474c036ec43764acdf6f3e34ae042/transformed/emoji2-1.3.0/res
+com.junkitout.driver-animation-core-release-5 /home/hanicharles/.gradle/caches/transforms-4/1b0d8044f9d2e9c0921cc90b9886460c/transformed/animation-core-release/res
+com.junkitout.driver-lifecycle-viewmodel-ktx-2.8.3-6 /home/hanicharles/.gradle/caches/transforms-4/1e6cf241e6e0d584ed724bdbdc7e0c09/transformed/lifecycle-viewmodel-ktx-2.8.3/res
+com.junkitout.driver-activity-ktx-1.9.0-7 /home/hanicharles/.gradle/caches/transforms-4/265e0588236f65447e47f9e2a0766c37/transformed/activity-ktx-1.9.0/res
+com.junkitout.driver-play-services-maps-18.2.0-8 /home/hanicharles/.gradle/caches/transforms-4/2d2dd44409cd9c598bd03db0197aac73/transformed/play-services-maps-18.2.0/res
+com.junkitout.driver-core-runtime-2.2.0-9 /home/hanicharles/.gradle/caches/transforms-4/35b3db2516afa50d8f7eeea7a2525269/transformed/core-runtime-2.2.0/res
+com.junkitout.driver-lifecycle-livedata-2.8.3-10 /home/hanicharles/.gradle/caches/transforms-4/38dba8e4089a860ac93941844aa8e3fb/transformed/lifecycle-livedata-2.8.3/res
+com.junkitout.driver-lifecycle-viewmodel-release-11 /home/hanicharles/.gradle/caches/transforms-4/41ef88efd19640e8f85bac1c9602b5bd/transformed/lifecycle-viewmodel-release/res
+com.junkitout.driver-lifecycle-livedata-core-2.8.3-12 /home/hanicharles/.gradle/caches/transforms-4/435e516c828e563178b716f5a35b66e7/transformed/lifecycle-livedata-core-2.8.3/res
+com.junkitout.driver-navigation-common-ktx-2.7.7-13 /home/hanicharles/.gradle/caches/transforms-4/455415d262a970b49fdaa2cd5b7f9794/transformed/navigation-common-ktx-2.7.7/res
+com.junkitout.driver-material-release-14 /home/hanicharles/.gradle/caches/transforms-4/477e3b6cc6484f0d562d54143bc8c798/transformed/material-release/res
+com.junkitout.driver-savedstate-ktx-1.2.1-15 /home/hanicharles/.gradle/caches/transforms-4/4b0189ef96502ad6c8505175b508ab6e/transformed/savedstate-ktx-1.2.1/res
+com.junkitout.driver-savedstate-1.2.1-16 /home/hanicharles/.gradle/caches/transforms-4/4bd627a9048f6ce18b1b2d88bd05a714/transformed/savedstate-1.2.1/res
+com.junkitout.driver-profileinstaller-1.3.1-17 /home/hanicharles/.gradle/caches/transforms-4/4e16cc280eaa0a1f5277c41379c36ea2/transformed/profileinstaller-1.3.1/res
+com.junkitout.driver-lifecycle-runtime-release-18 /home/hanicharles/.gradle/caches/transforms-4/5261ef004fabf1ecdf1ef70c49eff2e8/transformed/lifecycle-runtime-release/res
+com.junkitout.driver-lifecycle-viewmodel-compose-release-19 /home/hanicharles/.gradle/caches/transforms-4/60642498b6003129c3e2e5ba67937c6a/transformed/lifecycle-viewmodel-compose-release/res
+com.junkitout.driver-maps-compose-4.4.1-20 /home/hanicharles/.gradle/caches/transforms-4/682b0e30a07ee243a911e8c1e4ddf65a/transformed/maps-compose-4.4.1/res
+com.junkitout.driver-foundation-release-21 /home/hanicharles/.gradle/caches/transforms-4/6882bccadd010629ff0a1ec3880068e4/transformed/foundation-release/res
+com.junkitout.driver-runtime-saveable-release-22 /home/hanicharles/.gradle/caches/transforms-4/6bef251489f0fc420fa1f568442a9df9/transformed/runtime-saveable-release/res
+com.junkitout.driver-startup-runtime-1.1.1-23 /home/hanicharles/.gradle/caches/transforms-4/705c330e03d4e2fcb62a924d14782115/transformed/startup-runtime-1.1.1/res
+com.junkitout.driver-ui-graphics-release-24 /home/hanicharles/.gradle/caches/transforms-4/72e034cce98fcfc6cac1e844dd70db3b/transformed/ui-graphics-release/res
+com.junkitout.driver-navigation-runtime-ktx-2.7.7-25 /home/hanicharles/.gradle/caches/transforms-4/73f65e877665775ad0cb66c4fc4f92cb/transformed/navigation-runtime-ktx-2.7.7/res
+com.junkitout.driver-lifecycle-process-2.8.3-26 /home/hanicharles/.gradle/caches/transforms-4/78b795fed1b5eda72f0752483e281f4c/transformed/lifecycle-process-2.8.3/res
+com.junkitout.driver-ui-unit-release-27 /home/hanicharles/.gradle/caches/transforms-4/7d4d3a9a1b2bf883c4eb0ce077376dd9/transformed/ui-unit-release/res
+com.junkitout.driver-ui-tooling-data-release-28 /home/hanicharles/.gradle/caches/transforms-4/7d8fed506a384c6ebb4906e8f1b8f9aa/transformed/ui-tooling-data-release/res
+com.junkitout.driver-coordinatorlayout-1.0.0-29 /home/hanicharles/.gradle/caches/transforms-4/7e6fe267996f913649fe9851ce600ec4/transformed/coordinatorlayout-1.0.0/res
+com.junkitout.driver-play-services-base-18.0.1-30 /home/hanicharles/.gradle/caches/transforms-4/843ec780b57ed6c96319a8f6ddd9c2d6/transformed/play-services-base-18.0.1/res
+com.junkitout.driver-material-icons-extended-release-31 /home/hanicharles/.gradle/caches/transforms-4/87ba6c21ac512ce035929bc3ebeb7190/transformed/material-icons-extended-release/res
+com.junkitout.driver-core-1.13.1-32 /home/hanicharles/.gradle/caches/transforms-4/8e0a0bff2d388b6446750efdf4a5758f/transformed/core-1.13.1/res
+com.junkitout.driver-ui-tooling-preview-release-33 /home/hanicharles/.gradle/caches/transforms-4/99c8477ded6f726dc952b5bd2de159c8/transformed/ui-tooling-preview-release/res
+com.junkitout.driver-material-icons-core-release-34 /home/hanicharles/.gradle/caches/transforms-4/9bc070f20ee3ce1e3a961447045f8a7b/transformed/material-icons-core-release/res
+com.junkitout.driver-ui-release-35 /home/hanicharles/.gradle/caches/transforms-4/9c09bba0afbdcfa3f9923e85ee633245/transformed/ui-release/res
+com.junkitout.driver-appcompat-resources-1.6.1-36 /home/hanicharles/.gradle/caches/transforms-4/9f152211f368ddf8b167627d72946a31/transformed/appcompat-resources-1.6.1/res
+com.junkitout.driver-material3-release-37 /home/hanicharles/.gradle/caches/transforms-4/a46343d596cd2a9dc852dfbe04ee83f3/transformed/material3-release/res
+com.junkitout.driver-lifecycle-runtime-ktx-release-38 /home/hanicharles/.gradle/caches/transforms-4/a60f816e0fc766fcd0013cb7965790ca/transformed/lifecycle-runtime-ktx-release/res
+com.junkitout.driver-navigation-runtime-2.7.7-39 /home/hanicharles/.gradle/caches/transforms-4/af48ec4587d9188f36efaa619fefd270/transformed/navigation-runtime-2.7.7/res
+com.junkitout.driver-activity-1.9.0-40 /home/hanicharles/.gradle/caches/transforms-4/b0c3288172f724d9b8af4526dbcc7583/transformed/activity-1.9.0/res
+com.junkitout.driver-navigation-common-2.7.7-41 /home/hanicharles/.gradle/caches/transforms-4/b59e10dfbcad63a2662e480008133d54/transformed/navigation-common-2.7.7/res
+com.junkitout.driver-annotation-experimental-1.4.0-42 /home/hanicharles/.gradle/caches/transforms-4/b602daaf2448be52ca00da64464dbe99/transformed/annotation-experimental-1.4.0/res
+com.junkitout.driver-lifecycle-livedata-core-ktx-2.8.3-43 /home/hanicharles/.gradle/caches/transforms-4/b983be66fd9c22af0dc9a635907d74f6/transformed/lifecycle-livedata-core-ktx-2.8.3/res
+com.junkitout.driver-material-ripple-release-44 /home/hanicharles/.gradle/caches/transforms-4/bc9d09d93d63b5366c993189c0c309ea/transformed/material-ripple-release/res
+com.junkitout.driver-ui-util-release-45 /home/hanicharles/.gradle/caches/transforms-4/c03962454a580ad384d529ce5da6b872/transformed/ui-util-release/res
+com.junkitout.driver-ui-tooling-release-46 /home/hanicharles/.gradle/caches/transforms-4/c7ff3eb765e975bf618d909127b04946/transformed/ui-tooling-release/res
+com.junkitout.driver-customview-poolingcontainer-1.0.0-47 /home/hanicharles/.gradle/caches/transforms-4/ca320cc04769201d96ae35a18d4b1c24/transformed/customview-poolingcontainer-1.0.0/res
+com.junkitout.driver-lifecycle-runtime-compose-release-48 /home/hanicharles/.gradle/caches/transforms-4/d05f5face06f5607e3299645db7568cd/transformed/lifecycle-runtime-compose-release/res
+com.junkitout.driver-navigation-compose-2.7.7-49 /home/hanicharles/.gradle/caches/transforms-4/d32c8f88ac40a121f5e071fece63b44b/transformed/navigation-compose-2.7.7/res
+com.junkitout.driver-play-services-basement-18.0.0-50 /home/hanicharles/.gradle/caches/transforms-4/e19e37ad3766805b79f0a2fc9accd8f2/transformed/play-services-basement-18.0.0/res
+com.junkitout.driver-coil-base-2.6.0-51 /home/hanicharles/.gradle/caches/transforms-4/e826a28626ce96a8ff800fc104562a63/transformed/coil-base-2.6.0/res
+com.junkitout.driver-ui-text-release-52 /home/hanicharles/.gradle/caches/transforms-4/ec03b51c718d5a16629a2de1565e2710/transformed/ui-text-release/res
+com.junkitout.driver-core-ktx-1.13.1-53 /home/hanicharles/.gradle/caches/transforms-4/ee0481a11330c26fe06a00831ef0481b/transformed/core-ktx-1.13.1/res
+com.junkitout.driver-ui-geometry-release-54 /home/hanicharles/.gradle/caches/transforms-4/f513593dc0516cc407bc481c6c67ad12/transformed/ui-geometry-release/res
+com.junkitout.driver-animation-release-55 /home/hanicharles/.gradle/caches/transforms-4/f9ccb624363d44550effdf918ef6fc77/transformed/animation-release/res
+com.junkitout.driver-pngs-56 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/build/generated/res/pngs/debug
+com.junkitout.driver-resValues-57 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/build/generated/res/resValues/debug
+com.junkitout.driver-packageDebugResources-58 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.junkitout.driver-packageDebugResources-59 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.junkitout.driver-debug-60 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/build/intermediates/merged_res/debug/mergeDebugResources
+com.junkitout.driver-debug-61 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/debug/res
+com.junkitout.driver-main-62 /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/res
