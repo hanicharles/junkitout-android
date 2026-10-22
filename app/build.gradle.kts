@@ -14,11 +14,11 @@ val localProps = Properties().apply {
 fun prop(name: String, default: String = "") = localProps.getProperty(name, default)
 
 android {
-    namespace = "com.junkitout.app"
+    namespace = "com.app.junkitout"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.junkitout.app"
+        applicationId = "com.app.junkitout"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

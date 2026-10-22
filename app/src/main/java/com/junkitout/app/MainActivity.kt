@@ -7,7 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import com.junkitout.app.BuildConfig
+import com.app.junkitout.BuildConfig
 import com.junkitout.app.ui.AppNav
 import com.junkitout.app.ui.JunkItOutTheme
 import com.razorpay.Checkout

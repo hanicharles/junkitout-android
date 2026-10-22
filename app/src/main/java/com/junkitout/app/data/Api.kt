@@ -1,6 +1,6 @@
 package com.junkitout.app.data
 
-import com.junkitout.app.BuildConfig
+import com.app.junkitout.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray

@@ -1,5 +1,6 @@
 package com.junkitout.app.ui
 
+import com.app.junkitout.R
 import androidx.compose.runtime.LaunchedEffect
 import com.junkitout.app.data.Address
 import com.junkitout.app.data.Api
@@ -331,7 +332,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFEAF6EC),
                     arrowBg = Color(0xFFD5EDD8),
                     arrowTint = JColors.Primary,
-                    imageRes = com.junkitout.app.R.drawable.img_ewaste,
+                    imageRes = R.drawable.img_ewaste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("E-Waste Disposal") }
 
@@ -342,7 +343,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFFDF7EE),
                     arrowBg = Color(0xFFFDE8D0),
                     arrowTint = Color(0xFFE57A2E),
-                    imageRes = com.junkitout.app.R.drawable.img_household_dry,
+                    imageRes = R.drawable.img_household_dry,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Household Dry Waste") }
             }
@@ -355,7 +356,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFF4F7EE),
                     arrowBg = Color(0xFFE2EDCE),
                     arrowTint = Color(0xFF3DA35D),
-                    imageRes = com.junkitout.app.R.drawable.img_paper_waste,
+                    imageRes = R.drawable.img_paper_waste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Paper & Cardboard") }
 
@@ -366,7 +367,7 @@ private fun HomeTab(area: String, city: String, onChangeLocation: () -> Unit, on
                     cardBg = Color(0xFFEDF5FD),
                     arrowBg = Color(0xFFD0E3F7),
                     arrowTint = Color(0xFF2F80ED),
-                    imageRes = com.junkitout.app.R.drawable.img_plastic_waste,
+                    imageRes = R.drawable.img_plastic_waste,
                     modifier = Modifier.weight(1f)
                 ) { onBook("Plastic Waste") }
             }
