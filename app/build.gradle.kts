@@ -15,14 +15,14 @@ fun prop(name: String, default: String = "") = localProps.getProperty(name, defa
 
 android {
     namespace = "com.app.junkitout"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.app.junkitout"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.1"
 
         buildConfigField("String", "API_BASE_URL", "\"${prop("API_BASE_URL")}\"")
         buildConfigField("String", "RAZORPAY_KEY_ID", "\"${prop("RAZORPAY_KEY_ID")}\"")
