@@ -21,30 +21,29 @@ object DriverApi {
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = method
                 connectTimeout = 15000
-                readTimeout = 15000
-                setRequestProperty("Content-Type", "application/json")
+                readTimeout = 25000
+                setRequestProperty("Accept", "application/json")
                 if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
                 if (body != null) {
                     doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
                     outputStream.use { it.write(body.toString().toByteArray()) }
                 }
             }
 
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
-            val json = if (text.startsWith("{")) JSONObject(text) else JSONObject()
+            val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            val json = runCatching { JSONObject(text) }.getOrElse { JSONObject().put("raw", text) }
 
             if (code in 200..299) {
                 DriverResult.Ok(json)
             } else {
-                val msg = json.optString("error").takeIf { it.isNotBlank() }
-                    ?: json.optString("message").takeIf { it.isNotBlank() }
-                    ?: "Driver server error ($code)"
+                val msg = json.optString("error", json.optString("message", "Driver server error ($code)"))
                 DriverResult.Err(msg)
             }
         } catch (e: Exception) {
-            DriverResult.Err("Network connection failed. Check your internet.")
+            DriverResult.Err("Can't reach server (${e.javaClass.simpleName}: ${e.message ?: "Check connection"})")
         }
     }
 
