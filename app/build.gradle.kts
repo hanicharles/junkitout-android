@@ -23,9 +23,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("release-key.jks")
-            storePassword = "junkitoutreleasekey"
-            keyAlias = "releaseKey"
-            keyPassword = "junkitoutreleasekey"
+            storePassword = "hani@911087"
+            keyAlias = "key0"
+            keyPassword = "hani@911087"
         }
     }
 
