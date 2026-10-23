@@ -238,7 +238,7 @@ fun LoginScreen(onContinue: (String) -> Unit) {
 
 // ───────────────────────── 03 OTP ─────────────────────────
 @Composable
-fun OtpScreen(phone: String, onBack: () -> Unit, onVerified: (token: String, name: String) -> Unit) {
+fun OtpScreen(phone: String, onBack: () -> Unit, onVerified: (com.junkitout.app.data.UserLoginData) -> Unit) {
     var otp by remember { mutableStateOf("") }
     var seconds by remember { mutableIntStateOf(30) }
     var busy by remember { mutableStateOf(false) }
@@ -249,7 +249,7 @@ fun OtpScreen(phone: String, onBack: () -> Unit, onVerified: (token: String, nam
         if (otp.length == 6) {
             busy = true; error = null
             when (val r = Api.verifyOtp(phone, otp)) {
-                is Result.Ok -> { busy = false; onVerified(r.value.first, r.value.second) }
+                is Result.Ok -> { busy = false; onVerified(r.value) }
                 is Result.Err -> { busy = false; error = r.message; otp = "" }
             }
         }

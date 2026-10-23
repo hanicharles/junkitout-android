@@ -123,8 +123,29 @@ app.post('/api/auth/verify-otp', rateLimit({ windowMs: 10 * 60 * 1000, limit: 20
      ON CONFLICT (phone) DO UPDATE SET phone = EXCLUDED.phone RETURNING id, name`,
     [id, phone]
   );
-  const token = jwt.sign({ uid: rows[0].id }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN || '7d' });
-  res.json({ token, user: { id: rows[0].id, name: rows[0].name || 'Junk-It-Out User', phone } });
+  const user = rows[0];
+
+  // Fetch user's default saved address to restore upon login
+  const { rows: addrRows } = await db.query(
+    `SELECT house, street, city, pincode, lat, lng FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC LIMIT 1`,
+    [user.id]
+  ).catch(() => ({ rows: [] }));
+
+  const addr = addrRows[0] || null;
+
+  const token = jwt.sign({ uid: user.id }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN || '30d' });
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      name: user.name || 'Junk-It-Out User',
+      phone,
+      area: addr ? `${addr.house}, ${addr.street}` : '',
+      pincode: addr ? addr.pincode : '',
+      lat: addr ? (addr.lat || 0.0) : 0.0,
+      lng: addr ? (addr.lng || 0.0) : 0.0
+    }
+  });
 }));
 
 app.get('/api/me', auth, wrap(async (req, res) => {

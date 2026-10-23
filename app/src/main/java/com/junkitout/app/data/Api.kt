@@ -18,28 +18,39 @@ object Api {
         method: String, path: String, token: String = "", body: JSONObject? = null,
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         if (BuildConfig.API_BASE_URL.isBlank())
-            return@withContext Result.Err("API_BASE_URL is not set in local.properties")
-        try {
-            val conn = (URL(BuildConfig.API_BASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection).apply {
-                requestMethod = method
-                connectTimeout = 15000; readTimeout = 25000
-                setRequestProperty("Accept", "application/json")
-                if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer $token")
-                if (body != null) {
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json")
-                    outputStream.use { it.write(body.toString().toByteArray()) }
+            return@withContext Result.Err("API_BASE_URL is not set")
+
+        var lastErr: Exception? = null
+        for (attempt in 1..3) {
+            try {
+                val conn = (URL(BuildConfig.API_BASE_URL.trimEnd('/') + path).openConnection() as HttpURLConnection).apply {
+                    requestMethod = method
+                    connectTimeout = 60000
+                    readTimeout = 60000
+                    setRequestProperty("Accept", "application/json")
+                    if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer $token")
+                    if (body != null) {
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        outputStream.use { it.write(body.toString().toByteArray()) }
+                    }
                 }
+                val code = conn.responseCode
+                val text = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                    ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                val json = runCatching { JSONObject(text) }.getOrElse { JSONObject().put("raw", text) }
+
+                return@withContext if (code in 200..299) {
+                    Result.Ok(json)
+                } else {
+                    Result.Err(json.optString("error", json.optString("message", "Request failed ($code)")))
+                }
+            } catch (e: Exception) {
+                lastErr = e
+                if (attempt < 3) kotlinx.coroutines.delay(2000L)
             }
-            val code = conn.responseCode
-            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)
-                ?.bufferedReader()?.use { it.readText() }.orEmpty()
-            val json = runCatching { JSONObject(text) }.getOrElse { JSONObject().put("raw", text) }
-            if (code in 200..299) Result.Ok(json)
-            else Result.Err(json.optString("error", json.optString("message", "Request failed ($code)")))
-        } catch (e: Exception) {
-            Result.Err("Can't reach server. Check your connection. (${e.javaClass.simpleName})")
         }
+        Result.Err("Server is waking up. Please try tapping Continue once more.")
     }
 
     // ── Auth ──
@@ -49,12 +60,22 @@ object Api {
             is Result.Err -> r
         }
 
-    suspend fun verifyOtp(phone: String, otp: String): Result<Pair<String, String>> =
+    suspend fun verifyOtp(phone: String, otp: String): Result<UserLoginData> =
         when (val r = call("POST", "/api/auth/verify-otp", body = JSONObject().put("phone", phone).put("otp", otp))) {
             is Result.Ok -> {
                 val token = r.value.optString("token")
+                val u = r.value.optJSONObject("user")
                 if (token.isEmpty()) Result.Err("Login failed: no token returned")
-                else Result.Ok(token to r.value.optJSONObject("user")?.optString("name").orEmpty())
+                else Result.Ok(
+                    UserLoginData(
+                        token = token,
+                        name = u?.optString("name").orEmpty(),
+                        area = u?.optString("area").orEmpty(),
+                        pincode = u?.optString("pincode").orEmpty(),
+                        lat = u?.optDouble("lat", 0.0) ?: 0.0,
+                        lng = u?.optDouble("lng", 0.0) ?: 0.0
+                    )
+                )
             }
             is Result.Err -> r
         }

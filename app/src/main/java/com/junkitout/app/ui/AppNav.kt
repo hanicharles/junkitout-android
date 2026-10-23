@@ -47,9 +47,21 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
             LoginScreen { p -> phone = p; nav.navigate("otp") }
         }
         composable("otp") {
-            OtpScreen(phone, onBack = { nav.popBackStack() }, onVerified = { t, n ->
-                token = t; name = n
-                session.token = t; session.name = n; session.phone = phone
+            OtpScreen(phone, onBack = { nav.popBackStack() }, onVerified = { loginData ->
+                token = loginData.token
+                name = loginData.name
+                session.token = loginData.token
+                session.name = loginData.name
+                session.phone = phone
+
+                if (loginData.area.isNotBlank()) {
+                    session.area = loginData.area
+                    session.pincode = loginData.pincode
+                    session.lat = loginData.lat
+                    session.lng = loginData.lng
+                    place = Place(loginData.area, "Bengaluru", loginData.pincode, loginData.lat, loginData.lng)
+                }
+
                 nav.navigate("home") { popUpTo("login") { inclusive = true } }
             })
         }

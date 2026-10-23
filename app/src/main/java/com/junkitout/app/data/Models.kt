@@ -2,6 +2,15 @@ package com.junkitout.app.data
 
 data class Place(val area: String, val city: String, val pincode: String, val lat: Double, val lng: Double)
 
+data class UserLoginData(
+    val token: String,
+    val name: String,
+    val area: String = "",
+    val pincode: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0
+)
+
 data class Address(
     val id: String = "",
     val name: String = "",
