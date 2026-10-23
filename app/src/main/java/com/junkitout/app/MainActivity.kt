@@ -29,20 +29,25 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        Checkout.preload(applicationContext)
-
-        val permissions = mutableListOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.CAMERA
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        requestPermissionsLauncher.launch(permissions.toTypedArray())
+        runCatching { Checkout.preload(applicationContext) }
 
         setContent {
-            JunkItOutTheme { AppNav(startPayment = ::startPayment) }
+            JunkItOutTheme {
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    runCatching {
+                        val permissions = mutableListOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.CAMERA
+                        )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        requestPermissionsLauncher.launch(permissions.toTypedArray())
+                    }
+                }
+                AppNav(startPayment = ::startPayment)
+            }
         }
     }
 

@@ -11,7 +11,10 @@ val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-fun prop(name: String, default: String = "") = localProps.getProperty(name, default)
+fun prop(name: String, default: String = ""): String {
+    val p = localProps.getProperty(name, "").trim()
+    return if (p.isNotBlank()) p else default
+}
 
 android {
     namespace = "com.app.junkitout"
@@ -21,13 +24,13 @@ android {
         applicationId = "com.app.junkitout"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.2"
+        versionCode = 6
+        versionName = "1.3"
 
-        buildConfigField("String", "API_BASE_URL", "\"${prop("API_BASE_URL")}\"")
-        buildConfigField("String", "RAZORPAY_KEY_ID", "\"${prop("RAZORPAY_KEY_ID")}\"")
-        buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${prop("GOOGLE_MAPS_API_KEY")}\"")
-        manifestPlaceholders["MAPS_API_KEY"] = prop("GOOGLE_MAPS_API_KEY")
+        buildConfigField("String", "API_BASE_URL", "\"${prop("API_BASE_URL", "https://junkitout-android.onrender.com")}\"")
+        buildConfigField("String", "RAZORPAY_KEY_ID", "\"${prop("RAZORPAY_KEY_ID", "rzp_live_Ti962RQ76Szodd")}\"")
+        buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${prop("GOOGLE_MAPS_API_KEY", "AIzaSyCqWuqhCwQ9klHHAyCA3sLClTvnRM6eNrc")}\"")
+        manifestPlaceholders["MAPS_API_KEY"] = prop("GOOGLE_MAPS_API_KEY", "AIzaSyCqWuqhCwQ9klHHAyCA3sLClTvnRM6eNrc")
     }
 
     buildTypes {
