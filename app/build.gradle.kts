@@ -21,8 +21,8 @@ android {
         applicationId = "com.app.junkitout"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 5
+        versionName = "1.2"
 
         buildConfigField("String", "API_BASE_URL", "\"${prop("API_BASE_URL")}\"")
         buildConfigField("String", "RAZORPAY_KEY_ID", "\"${prop("RAZORPAY_KEY_ID")}\"")
