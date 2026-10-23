@@ -17,12 +17,14 @@ fun AppNav(startPayment: (orderId: String, amountPaise: Long, phone: String) -> 
     val ctx = LocalContext.current
     val session = remember { Session(ctx) }
     val nav = rememberNavController()
-    var phone by remember { mutableStateOf(session.phone) }
-    var name by remember { mutableStateOf(session.name) }
-    var token by remember { mutableStateOf(session.token) }
+    var phone by remember { mutableStateOf(runCatching { session.phone }.getOrDefault("")) }
+    var name by remember { mutableStateOf(runCatching { session.name }.getOrDefault("")) }
+    var token by remember { mutableStateOf(runCatching { session.token }.getOrDefault("")) }
     var place by remember {
         mutableStateOf(
-            if (session.area.isNotBlank()) Place(session.area, "Bengaluru", session.pincode, session.lat, session.lng) else null
+            runCatching {
+                if (session.area.isNotBlank()) Place(session.area, "Bengaluru", session.pincode, session.lat, session.lng) else null
+            }.getOrNull()
         )
     }
     var bookService by remember { mutableStateOf<String?>(null) }
