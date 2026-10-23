@@ -37,13 +37,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
+import android.content.Context
+import android.content.ContextWrapper
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 /** Switches the status-bar icon colour (dark icons on light screens, light icons on dark screens). */
 @Composable
 fun StatusBarIcons(darkIcons: Boolean) {
     val view = LocalView.current
     SideEffect {
-        val window = (view.context as Activity).window
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkIcons
+        runCatching {
+            val window = view.context.findActivity()?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkIcons
+            }
+        }
     }
 }
 
