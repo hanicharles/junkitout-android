@@ -1,26 +1,42 @@
 [
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_img_household_dry.jpg.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/img_household_dry.jpg"
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_ic_launcher.png.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/ic_launcher.png"
     },
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_ic_launcher.png.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/ic_launcher.png"
+        "merged": "com.junkitout.driver-release-57:/drawable_img_household_dry.png.flat",
+        "source": "com.junkitout.driver-main-58:/drawable/img_household_dry.png"
     },
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_img_paper_waste.jpg.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/img_paper_waste.jpg"
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_img_paper_waste.jpg.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/img_paper_waste.jpg"
     },
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_img_plastic_waste.jpg.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/img_plastic_waste.jpg"
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_img_plastic_waste.jpg.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/img_plastic_waste.jpg"
     },
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_app_logo.png.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/app_logo.png"
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_img_household_dry.jpg.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/img_household_dry.jpg"
     },
     {
-        "merged": "com.junkitout.driver-release-57:/drawable_img_ewaste.jpg.flat",
-        "source": "com.junkitout.driver-main-58:/drawable/img_ewaste.jpg"
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_img_ewaste.jpg.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/img_ewaste.jpg"
+    },
+    {
+        "merged": "com.junkitout.driver-release-57:/drawable_img_paper_waste.png.flat",
+        "source": "com.junkitout.driver-main-58:/drawable/img_paper_waste.png"
+    },
+    {
+        "merged": "com.junkitout.driver-release-57:/drawable_img_plastic_waste.png.flat",
+        "source": "com.junkitout.driver-main-58:/drawable/img_plastic_waste.png"
+    },
+    {
+        "merged": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-release-57:/drawable_app_logo.png.flat",
+        "source": "/home/hanicharles/.gradle/daemon/8.7/com.junkitout.driver-main-58:/drawable/app_logo.png"
+    },
+    {
+        "merged": "com.junkitout.driver-release-57:/drawable_img_ewaste.png.flat",
+        "source": "com.junkitout.driver-main-58:/drawable/img_ewaste.png"
     }
 ]

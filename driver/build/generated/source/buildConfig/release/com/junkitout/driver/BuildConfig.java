@@ -7,8 +7,8 @@ public final class BuildConfig {
   public static final boolean DEBUG = false;
   public static final String APPLICATION_ID = "com.junkitout.driver";
   public static final String BUILD_TYPE = "release";
-  public static final int VERSION_CODE = 5;
-  public static final String VERSION_NAME = "1.2";
+  public static final int VERSION_CODE = 10;
+  public static final String VERSION_NAME = "1.7";
   // Field from default config.
   public static final String API_BASE_URL = "https://junkitout-android.onrender.com";
   // Field from default config.

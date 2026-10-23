@@ -20,6 +20,15 @@ android {
     namespace = "com.app.junkitout"
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release-key.jks")
+            storePassword = "junkitoutreleasekey"
+            keyAlias = "releaseKey"
+            keyPassword = "junkitoutreleasekey"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.app.junkitout"
         minSdk = 24
@@ -36,6 +45,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
