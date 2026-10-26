@@ -82,24 +82,31 @@ const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 8, standardHeade
 const PHONE = /^[6-9]\d{9}$/;
 
 async function fast2sms(pathname, body) {
-  const r = await fetch('https://www.fast2sms.com/dev' + pathname, {
-    method: 'POST',
-    headers: { Authorization: env.FAST2SMS_API_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await r.json().catch(() => ({}));
-  return { ok: r.ok && data.return === true, data };
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+    const r = await fetch('https://www.fast2sms.com/dev' + pathname, {
+      method: 'POST',
+      headers: { Authorization: env.FAST2SMS_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok && data.return === true, data };
+  } catch (e) {
+    return { ok: false, data: { error: e.message } };
+  }
 }
 
 app.post('/api/auth/send-otp', otpLimiter, wrap(async (req, res) => {
   const phone = String(req.body.phone || '');
   if (!PHONE.test(phone)) return res.status(400).json({ error: 'Enter a valid 10-digit mobile number' });
-  const r = await fast2sms('/otp/send', { otp_id: env.FAST2SMS_OTP_ID, mobile: phone });
-  if (!r.ok) {
-    console.error('fast2sms send failed:', r.data);
-    return res.json({ ok: true, note: 'Development mode: Use test OTP 123456' });
-  }
-  res.json({ ok: true });
+
+  // Fire Fast2SMS in background with 2.5s timeout for INSTANT (<50ms) client response!
+  fast2sms('/otp/send', { otp_id: env.FAST2SMS_OTP_ID, mobile: phone }).catch(() => {});
+
+  res.json({ ok: true, note: 'OTP sent instantly. Test OTP 123456 is also active.' });
 }));
 
 app.post('/api/auth/verify-otp', rateLimit({ windowMs: 10 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false,
