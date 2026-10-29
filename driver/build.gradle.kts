@@ -20,8 +20,8 @@ android {
         applicationId = "com.junkitout.driver"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.8"
+        versionCode = 17
+        versionName = "2.2"
 
         buildConfigField("String", "API_BASE_URL", "\"https://junkitout-android.onrender.com\"")
         buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"\"")
