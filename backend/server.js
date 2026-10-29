@@ -627,6 +627,23 @@ app.post('/api/driver/location', driverAuth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+app.get('/api/driver/earnings', driverAuth, wrap(async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT COUNT(*) as completed_count,
+            COALESCE(SUM(actual_kg), 0) as total_kg,
+            COALESCE(SUM(amount), 0) as total_earnings
+     FROM bookings
+     WHERE driver_id = $1 AND status = 'Completed'`,
+    [req.driverId]
+  );
+  const stats = rows[0] || { completed_count: 0, total_kg: 0, total_earnings: 0 };
+  res.json({
+    completedCount: Number(stats.completed_count),
+    totalKg: Number(stats.total_kg),
+    totalEarnings: Number(stats.total_earnings)
+  });
+}));
+
 app.get('/api/bookings/:id/tracking', auth, wrap(async (req, res) => {
   const { id } = req.params;
   const { rows } = await db.query(

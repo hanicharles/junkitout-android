@@ -231,11 +231,17 @@ fun DriverDashboardScreen(
 
     val scope = rememberCoroutineScope()
 
+    var earnings by remember { mutableStateOf(Triple(0, 0, 0.0)) }
+
     LaunchedEffect(reload) {
         loading = true
         when (val r = DriverApi.getPickups(token)) {
             is DriverResult.Ok -> pickups = r.value
             is DriverResult.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
+        }
+        when (val r = DriverApi.getEarnings(token)) {
+            is DriverResult.Ok -> earnings = r.value
+            is DriverResult.Err -> {}
         }
         loading = false
     }
@@ -384,9 +390,9 @@ fun DriverDashboardScreen(
                 Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Today's Earnings", fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
-                        Text("₹380.00", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("₹%.2f".format(earnings.third), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         Spacer(Modifier.height(4.dp))
-                        Text("3 Completed Pickups • 42 kg Collected", fontSize = 11.sp, color = Color.White.copy(alpha = 0.85f))
+                        Text("${earnings.first} Completed Pickups • ${earnings.second} kg Collected", fontSize = 11.sp, color = Color.White.copy(alpha = 0.85f))
                     }
                     IconButton(onClick = { reload++ }) {
                         Icon(Icons.Filled.Refresh, "Refresh", tint = Color.White, modifier = Modifier.size(22.dp))

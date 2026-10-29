@@ -124,4 +124,16 @@ object DriverApi {
             is DriverResult.Ok -> DriverResult.Ok(Unit)
             is DriverResult.Err -> r
         }
+
+    suspend fun getEarnings(token: String): DriverResult<Triple<Int, Int, Double>> =
+        when (val r = call("GET", "/api/driver/earnings", token)) {
+            is DriverResult.Ok -> DriverResult.Ok(
+                Triple(
+                    r.value.optInt("completedCount", 0),
+                    r.value.optInt("totalKg", 0),
+                    r.value.optDouble("totalEarnings", 0.0)
+                )
+            )
+            is DriverResult.Err -> r
+        }
 }
