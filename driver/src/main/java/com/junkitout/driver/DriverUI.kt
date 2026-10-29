@@ -24,9 +24,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Navigation
@@ -34,6 +40,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -59,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -216,6 +225,7 @@ fun DriverDashboardScreen(
     onLogout: () -> Unit
 ) {
     val ctx = LocalContext.current
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Pickups, 1: Trips, 2: Earnings, 3: Profile
     var isOnline by remember { mutableStateOf(driver.status == "online") }
     var pickups by remember { mutableStateOf<List<PickupOrder>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -230,7 +240,6 @@ fun DriverDashboardScreen(
     var busyWeight by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
-
     var earnings by remember { mutableStateOf(Triple(0, 0, 0.0)) }
 
     LaunchedEffect(reload) {
@@ -347,128 +356,430 @@ fun DriverDashboardScreen(
         )
     }
 
-    Box(Modifier.fillMaxSize().background(DriverColors.Bg)) {
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 12.dp)
+    Scaffold(
+        containerColor = DriverColors.Bg,
+        bottomBar = {
+            DriverBottomBar(
+                selected = selectedTab,
+                onSelect = { selectedTab = it }
+            )
+        }
+    ) { padding ->
+        Box(Modifier.padding(padding).fillMaxSize()) {
+            when (selectedTab) {
+                0 -> DriverDutyTab(
+                    driver = driver,
+                    isOnline = isOnline,
+                    onToggleOnline = { isOnline = it },
+                    earnings = earnings,
+                    pickups = pickups,
+                    loading = loading,
+                    onReload = { reload++ },
+                    onNavigate = { pickup ->
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${pickup.addressText}"))
+                        ctx.startActivity(intent)
+                    },
+                    onUpdateStatus = { pickup, newStatus ->
+                        scope.launch {
+                            when (val r = DriverApi.updateStatus(pickup.id, newStatus, token)) {
+                                is DriverResult.Ok -> {
+                                    Toast.makeText(ctx, "Status updated: $newStatus", Toast.LENGTH_SHORT).show()
+                                    reload++
+                                }
+                                is DriverResult.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onVerifyOtp = { pickup -> otpInputOrder = pickup },
+                    onWeigh = { pickup -> weightInputOrder = pickup },
+                    onAccept = { pickup ->
+                        scope.launch {
+                            when (val r = DriverApi.acceptPickup(pickup.id, token)) {
+                                is DriverResult.Ok -> {
+                                    Toast.makeText(ctx, "Pickup claimed successfully!", Toast.LENGTH_SHORT).show()
+                                    reload++
+                                }
+                                is DriverResult.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                )
+                1 -> DriverTripHistoryTab(pickups = pickups.filter { it.status == "Completed" || it.paid })
+                2 -> DriverEarningsTab(earnings = earnings)
+                3 -> DriverProfileTab(driver = driver, onLogout = onLogout)
+            }
+        }
+    }
+}
+
+// ───────────────────────── Tab 0: Duty & Pickups Feed ─────────────────────────
+@Composable
+private fun DriverDutyTab(
+    driver: DriverInfo,
+    isOnline: Boolean,
+    onToggleOnline: (Boolean) -> Unit,
+    earnings: Triple<Int, Int, Double>,
+    pickups: List<PickupOrder>,
+    loading: Boolean,
+    onReload: () -> Unit,
+    onNavigate: (PickupOrder) -> Unit,
+    onUpdateStatus: (PickupOrder, String) -> Unit,
+    onVerifyOtp: (PickupOrder) -> Unit,
+    onWeigh: (PickupOrder) -> Unit,
+    onAccept: (PickupOrder) -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+    ) {
+        // Duty Status Header Bar
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Header Bar
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(46.dp).clip(CircleShape).background(Color(0xFFEAF6EC)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🚛", fontSize = 24.sp)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(driver.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DriverColors.Text)
+                    Text("${driver.vehicleNumber} • ${driver.serviceArea}", fontSize = 12.sp, color = DriverColors.Subtle)
+                }
+                Switch(
+                    checked = isOnline,
+                    onCheckedChange = onToggleOnline,
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DriverColors.Primary)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Earnings Summary Quick Banner
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = DriverColors.Primary,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Today's Earnings", fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
+                    Text("₹%.2f".format(earnings.third), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Spacer(Modifier.height(4.dp))
+                    Text("${earnings.first} Completed Pickups • ${earnings.second} kg Collected", fontSize = 11.sp, color = Color.White.copy(alpha = 0.85f))
+                }
+                IconButton(onClick = onReload) {
+                    Icon(Icons.Filled.Refresh, "Refresh", tint = Color.White, modifier = Modifier.size(22.dp))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        val myAssigned = pickups.filter { it.isAssignedToMe && it.status != "Completed" }
+        val unassignedFeed = pickups.filter { !it.isAssignedToMe && it.status == "Scheduled" }
+
+        // Active Assigned Pickups
+        if (myAssigned.isNotEmpty()) {
+            Text("Your Active Pickups (${myAssigned.size})", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = DriverColors.Text)
+            Spacer(Modifier.height(10.dp))
+
+            myAssigned.forEach { pickup ->
+                AssignedPickupCard(
+                    pickup = pickup,
+                    onNavigate = { onNavigate(pickup) },
+                    onUpdateStatus = { newStatus -> onUpdateStatus(pickup, newStatus) },
+                    onVerifyOtp = { onVerifyOtp(pickup) },
+                    onWeigh = { onWeigh(pickup) }
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Unassigned Feed
+        Text("Available Pickups Feed (${unassignedFeed.size})", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = DriverColors.Text)
+        Spacer(Modifier.height(10.dp))
+
+        if (loading) {
+            Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = DriverColors.Primary)
+            }
+        } else if (unassignedFeed.isEmpty()) {
+            Text("No available pickups in your area currently.", fontSize = 13.sp, color = DriverColors.Subtle)
+        } else {
+            unassignedFeed.forEach { pickup ->
+                UnassignedPickupCard(pickup = pickup, onAccept = { onAccept(pickup) })
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ───────────────────────── Tab 1: Trip History ─────────────────────────
+@Composable
+private fun DriverTripHistoryTab(pickups: List<PickupOrder>) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+    ) {
+        Text("Trip History", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DriverColors.Text)
+        Text("Log of all completed waste pickups", fontSize = 13.sp, color = DriverColors.Subtle)
+
+        Spacer(Modifier.height(18.dp))
+
+        if (pickups.isEmpty()) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color.White,
-                shadowElevation = 1.dp,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
             ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(46.dp).clip(CircleShape).background(Color(0xFFEAF6EC)),
-                        contentAlignment = Alignment.Center
+                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📋", fontSize = 48.sp)
+                    Spacer(Modifier.height(12.dp))
+                    Text("No completed trips yet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DriverColors.Text)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Claim and complete pickups from the duty feed to build your trip history.", fontSize = 12.sp, color = DriverColors.Subtle, textAlign = TextAlign.Center)
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                pickups.forEach { p ->
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, DriverColors.Border),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("🚛", fontSize = 24.sp)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(driver.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DriverColors.Text)
-                        Text("${driver.vehicleNumber} • ${driver.serviceArea}", fontSize = 12.sp, color = DriverColors.Subtle)
-                    }
-                    Switch(
-                        checked = isOnline,
-                        onCheckedChange = { isOnline = it },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = DriverColors.Primary)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Earnings Summary Banner
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = DriverColors.Primary,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Today's Earnings", fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
-                        Text("₹%.2f".format(earnings.third), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Spacer(Modifier.height(4.dp))
-                        Text("${earnings.first} Completed Pickups • ${earnings.second} kg Collected", fontSize = 11.sp, color = Color.White.copy(alpha = 0.85f))
-                    }
-                    IconButton(onClick = { reload++ }) {
-                        Icon(Icons.Filled.Refresh, "Refresh", tint = Color.White, modifier = Modifier.size(22.dp))
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            val myAssigned = pickups.filter { it.isAssignedToMe && it.status != "Completed" }
-            val unassignedFeed = pickups.filter { !it.isAssignedToMe && it.status == "Scheduled" }
-
-            // Active Assigned Pickups
-            if (myAssigned.isNotEmpty()) {
-                Text("Your Active Pickups (${myAssigned.size})", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = DriverColors.Text)
-                Spacer(Modifier.height(10.dp))
-
-                myAssigned.forEach { pickup ->
-                    AssignedPickupCard(
-                        pickup = pickup,
-                        onNavigate = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${pickup.addressText}"))
-                            ctx.startActivity(intent)
-                        },
-                        onUpdateStatus = { newStatus ->
-                            scope.launch {
-                                when (val r = DriverApi.updateStatus(pickup.id, newStatus, token)) {
-                                    is DriverResult.Ok -> {
-                                        Toast.makeText(ctx, "Status updated: $newStatus", Toast.LENGTH_SHORT).show()
-                                        reload++
-                                    }
-                                    is DriverResult.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
-                                }
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(42.dp).clip(CircleShape).background(Color(0xFFEAF6EC)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.CheckCircle, null, tint = DriverColors.Primary, modifier = Modifier.size(20.dp))
                             }
-                        },
-                        onVerifyOtp = { otpInputOrder = pickup },
-                        onWeigh = { weightInputOrder = pickup }
-                    )
-                    Spacer(Modifier.height(12.dp))
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Unassigned Feed
-            Text("Available Pickups Feed (${unassignedFeed.size})", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = DriverColors.Text)
-            Spacer(Modifier.height(10.dp))
-
-            if (loading) {
-                Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DriverColors.Primary)
-                }
-            } else if (unassignedFeed.isEmpty()) {
-                Text("No available pickups in your area currently.", fontSize = 13.sp, color = DriverColors.Subtle)
-            } else {
-                unassignedFeed.forEach { pickup ->
-                    UnassignedPickupCard(
-                        pickup = pickup,
-                        onAccept = {
-                            scope.launch {
-                                when (val r = DriverApi.acceptPickup(pickup.id, token)) {
-                                    is DriverResult.Ok -> {
-                                        Toast.makeText(ctx, "Pickup claimed successfully!", Toast.LENGTH_SHORT).show()
-                                        reload++
-                                    }
-                                    is DriverResult.Err -> Toast.makeText(ctx, r.message, Toast.LENGTH_SHORT).show()
-                                }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(p.service, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = DriverColors.Text)
+                                Text("📍 ${p.addressText}", fontSize = 12.sp, color = DriverColors.Subtle)
+                                Text("📅 ${p.date} • ${p.estimatedKg} kg collected", fontSize = 11.sp, color = DriverColors.Subtle)
                             }
+                            Spacer(Modifier.width(8.dp))
+                            Text("₹%.0f".format(p.amount), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DriverColors.Primary)
                         }
-                    )
-                    Spacer(Modifier.height(12.dp))
+                    }
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+// ───────────────────────── Tab 2: Earnings & Payouts ─────────────────────────
+@Composable
+private fun DriverEarningsTab(earnings: Triple<Int, Int, Double>) {
+    val ctx = LocalContext.current
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+    ) {
+        Text("Earnings & Settlements", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DriverColors.Text)
+        Text("Your daily collection payouts and incentives", fontSize = 13.sp, color = DriverColors.Subtle)
+
+        Spacer(Modifier.height(18.dp))
+
+        // Large Payout Card
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = DriverColors.Primary,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(20.dp)) {
+                Text("Total Settled Earnings", fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
+                Spacer(Modifier.height(4.dp))
+                Text("₹%.2f".format(earnings.third), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
+
+                Spacer(Modifier.height(16.dp))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.2f)))
+                Spacer(Modifier.height(16.dp))
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Pickups Completed", fontSize = 11.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("${earnings.first} Trips", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Total Waste Collected", fontSize = 11.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("${earnings.second} kg", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Payout Info Card
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, DriverColors.Border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Weekly Settlement Account", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = DriverColors.Text)
+                Spacer(Modifier.height(6.dp))
+                Text("🏦 State Bank of India •••• 4082", fontSize = 13.sp, color = DriverColors.Text, fontWeight = FontWeight.SemiBold)
+                Text("Automatic weekly direct deposit every Monday", fontSize = 11.sp, color = DriverColors.Subtle)
+            }
+        }
+    }
+}
+
+// ───────────────────────── Tab 3: Driver Profile & Settings ─────────────────────────
+@Composable
+private fun DriverProfileTab(driver: DriverInfo, onLogout: () -> Unit) {
+    val ctx = LocalContext.current
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+    ) {
+        Text("Account & Vehicle", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DriverColors.Text)
+        Text("Collection Executive Partner Profile", fontSize = 13.sp, color = DriverColors.Subtle)
+
+        Spacer(Modifier.height(18.dp))
+
+        // Driver Info Card
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, DriverColors.Border),
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(54.dp).clip(CircleShape).background(Color(0xFFEAF6EC)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Person, null, tint = DriverColors.Primary, modifier = Modifier.size(32.dp))
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(driver.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DriverColors.Text)
+                    Text("+91 ${driver.phone}", fontSize = 13.sp, color = DriverColors.Subtle)
+                    Spacer(Modifier.height(4.dp))
+                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFEAF6EC)) {
+                        Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.CheckCircle, null, tint = DriverColors.Primary, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Verified Partner Executive", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DriverColors.Primary)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // Menu Items Card
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, DriverColors.Border),
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                val menuItems = listOf(
+                    Triple(Icons.Filled.TwoWheeler, "Vehicle Registration", driver.vehicleNumber),
+                    Triple(Icons.Filled.Edit, "Assigned Duty Area", driver.serviceArea),
+                    Triple(Icons.Filled.Help, "Partner Support & Helpdesk", "Get help or contact operations"),
+                    Triple(Icons.Filled.Settings, "App & Alert Settings", "Notification preferences"),
+                    Triple(Icons.Filled.Info, "About Junk-It-Out Partner", "v1.0 Partner Ecosystem")
+                )
+                menuItems.forEachIndexed { idx, item ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable {
+                            Toast.makeText(ctx, item.second, Toast.LENGTH_SHORT).show()
+                        }.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.size(36.dp).clip(CircleShape).background(Color(0xFFEAF6EC)), contentAlignment = Alignment.Center) {
+                            Icon(item.first, null, tint = DriverColors.Primary, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(item.second, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = DriverColors.Text)
+                            Text(item.third, fontSize = 11.sp, color = DriverColors.Subtle)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DriverColors.Subtle, modifier = Modifier.size(18.dp))
+                    }
+                    if (idx < menuItems.size - 1) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(DriverColors.Border.copy(alpha = 0.5f)))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // Logout Button
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFFFCE6E6),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onLogout)
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = DriverColors.Red)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Logout Partner Account", color = DriverColors.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Sign out from collector session", color = DriverColors.Red.copy(alpha = 0.8f), fontSize = 11.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ───────────────────────── Driver Bottom Navigation Bar ─────────────────────────
+@Composable
+private fun DriverBottomBar(selected: Int, onSelect: (Int) -> Unit) {
+    Surface(
+        color = Color.White,
+        shadowElevation = 12.dp,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DriverNavItem(Icons.Filled.LocalShipping, "Duty Feed", selected == 0) { onSelect(0) }
+            DriverNavItem(Icons.Filled.History, "Trips", selected == 1) { onSelect(1) }
+            DriverNavItem(Icons.Filled.AccountBalanceWallet, "Earnings", selected == 2) { onSelect(2) }
+            DriverNavItem(Icons.Filled.Person, "Account", selected == 3) { onSelect(3) }
+        }
+    }
+}
+
+@Composable
+private fun DriverNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+    val color = if (selected) DriverColors.Primary else DriverColors.Subtle
+    Column(
+        Modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, label, tint = color, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = 11.sp, color = color, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
