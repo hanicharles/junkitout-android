@@ -58,7 +58,11 @@ import com.junkitout.app.data.Result
 // ───────────────────────── 01 Splash ─────────────────────────
 @Composable
 fun SplashScreen(onDone: () -> Unit) {
-    LaunchedEffect(Unit) { delay(2200); onDone() }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.GlobalScope.launch { Api.ping() }
+        delay(2000)
+        onDone()
+    }
     ScreenRoot(
         dark = true,
         background = Brush.verticalGradient(listOf(Color(0xFF0A3A1C), Color(0xFF0F5A2A), Color(0xFF0A3A1C)))
@@ -187,15 +191,8 @@ fun LoginScreen(onContinue: (String) -> Unit) {
             }
 
             // Continue Button
-            PrimaryButton(if (busy) "Sending OTP..." else "Continue", enabled = phone.length == 10 && !busy) {
-                busy = true
-                error = null
-                scope.launch {
-                    when (val r = Api.sendOtp(phone)) {
-                        is Result.Ok -> { busy = false; onContinue(phone) }
-                        is Result.Err -> { busy = false; error = r.message }
-                    }
-                }
+            PrimaryButton("Continue", enabled = phone.length == 10) {
+                onContinue(phone)
             }
 
             // Middle Truck & Cityscape Illustration
@@ -244,6 +241,11 @@ fun OtpScreen(phone: String, onBack: () -> Unit, onVerified: (com.junkitout.app.
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(phone) {
+        Api.sendOtp(phone)
+    }
+
     LaunchedEffect(seconds) { if (seconds > 0) { delay(1000); seconds-- } }
     LaunchedEffect(otp) {
         if (otp.length == 6) {

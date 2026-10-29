@@ -76,6 +76,11 @@ async function auth(req, res, next) {
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// Self-Keep-Alive ping every 4 minutes to keep Render backend warm with 0ms cold starts
+setInterval(() => {
+  fetch('https://junkitout-android.onrender.com/health').catch(() => {});
+}, 4 * 60 * 1000);
+
 // ── Auth (Fast2SMS Smart OTP) ──
 const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many OTP requests. Try again in a few minutes.' } });

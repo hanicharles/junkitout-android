@@ -54,6 +54,10 @@ object Api {
     }
 
     // ── Auth ──
+    suspend fun ping() {
+        runCatching { call("GET", "/health") }
+    }
+
     suspend fun sendOtp(phone: String): Result<Unit> =
         when (val r = call("POST", "/api/auth/send-otp", body = JSONObject().put("phone", phone))) {
             is Result.Ok -> Result.Ok(Unit)
