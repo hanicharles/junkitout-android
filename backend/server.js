@@ -496,20 +496,23 @@ app.post('/api/wallet/topup/verify', auth, wrap(async (req, res) => {
 }));
 
 // ── Driver REST API ──
-const driverAuth = wrap(async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+const driverAuth = (req, res, next) => {
+  const authHeader = req.get('authorization') || '';
+  if (!authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Driver authentication required' });
   }
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET);
+    if (!decoded.driverId) {
+      return res.status(401).json({ error: 'Invalid driver token payload' });
+    }
     req.driverId = decoded.driverId;
     next();
   } catch (err) {
     res.status(401).json({ error: 'Invalid or expired driver session' });
   }
-});
+};
 
 app.post('/api/driver/auth/login', wrap(async (req, res) => {
   const phone = String(req.body.phone || '').trim();
