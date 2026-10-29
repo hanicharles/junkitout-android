@@ -97,9 +97,20 @@ fun DriverLoginScreen(
     var phone by remember { mutableStateOf("9591225555") }
     var name by remember { mutableStateOf("Collector Ramesh") }
     var vehicleNumber by remember { mutableStateOf("KA-01-EA-2026") }
+
+    var step by remember { mutableIntStateOf(1) } // 1: Phone input, 2: OTP input
+    var otp by remember { mutableStateOf("") }
+    var seconds by remember { mutableIntStateOf(30) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(seconds, step) {
+        if (step == 2 && seconds > 0) {
+            kotlinx.coroutines.delay(1000L)
+            seconds--
+        }
+    }
 
     Box(
         Modifier.fillMaxSize().background(
@@ -113,7 +124,7 @@ fun DriverLoginScreen(
                 .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(48.dp))
 
             Surface(
                 shape = CircleShape,
@@ -140,75 +151,111 @@ fun DriverLoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp)) {
-                    Text("Driver Partner Login", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DriverColors.Text)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Enter your registered driver details", fontSize = 12.sp, color = DriverColors.Subtle)
+                    if (step == 1) {
+                        Text("Driver Partner Login", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DriverColors.Text)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Sign in securely using your registered mobile number", fontSize = 12.sp, color = DriverColors.Subtle)
 
-                    Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(16.dp))
 
-                    Text("Full Name", fontSize = 12.sp, color = DriverColors.Subtle)
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DriverColors.Primary)
-                    )
+                        Text("Mobile Number *", fontSize = 12.sp, color = DriverColors.Subtle)
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it.filter { c -> c.isDigit() }.take(10) },
+                            prefix = { Text("🇮🇳 +91 ", fontWeight = FontWeight.Bold) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DriverColors.Primary)
+                        )
 
-                    Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(20.dp))
 
-                    Text("Mobile Number", fontSize = 12.sp, color = DriverColors.Subtle)
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = phone,
-                        onValueChange = { phone = it.filter { c -> c.isDigit() }.take(10) },
-                        prefix = { Text("🇮🇳 +91 ", fontWeight = FontWeight.Bold) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DriverColors.Primary)
-                    )
+                        error?.let {
+                            Text(it, color = DriverColors.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        }
 
-                    Spacer(Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = DriverColors.Primary,
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = phone.length == 10 && !busy) {
+                                step = 2
+                                seconds = 30
+                                Toast.makeText(ctx, "OTP sent to +91 $phone", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                                Text("Send OTP →", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
+                        }
+                    } else {
+                        // Step 2: OTP Entry
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Verify Mobile Number", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DriverColors.Text)
+                                Spacer(Modifier.height(4.dp))
+                                Text("Enter 6-digit OTP sent to +91 $phone", fontSize = 12.sp, color = DriverColors.Subtle)
+                            }
+                            TextButton(onClick = { step = 1; otp = "" }) {
+                                Text("Change", fontSize = 12.sp, color = DriverColors.Primary)
+                            }
+                        }
 
-                    Text("Vehicle Registration Number", fontSize = 12.sp, color = DriverColors.Subtle)
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = vehicleNumber,
-                        onValueChange = { vehicleNumber = it.uppercase() },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DriverColors.Primary)
-                    )
+                        Spacer(Modifier.height(16.dp))
 
-                    Spacer(Modifier.height(20.dp))
+                        OutlinedTextField(
+                            value = otp,
+                            onValueChange = { otp = it.filter { c -> c.isDigit() }.take(6) },
+                            placeholder = { Text("Enter 6-digit OTP (e.g. 123456)", fontSize = 14.sp) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DriverColors.Primary)
+                        )
 
-                    error?.let {
-                        Text(it, color = DriverColors.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                    }
+                        Spacer(Modifier.height(10.dp))
 
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = DriverColors.Primary,
-                        modifier = Modifier.fillMaxWidth().clickable(enabled = phone.length == 10 && !busy) {
-                            busy = true
-                            error = null
-                            scope.launch {
-                                when (val r = DriverApi.login(phone, name, vehicleNumber)) {
-                                    is DriverResult.Ok -> {
-                                        busy = false
-                                        onLoginSuccess(r.value.first, r.value.second)
-                                    }
-                                    is DriverResult.Err -> {
-                                        busy = false
-                                        error = r.message
-                                    }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (seconds > 0) "Resend OTP in $seconds s" else "Didn't receive OTP?",
+                                fontSize = 12.sp,
+                                color = DriverColors.Subtle
+                            )
+                            if (seconds == 0) {
+                                TextButton(onClick = { seconds = 30; Toast.makeText(ctx, "Resent OTP to +91 $phone", Toast.LENGTH_SHORT).show() }) {
+                                    Text("Resend OTP", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DriverColors.Primary)
                                 }
                             }
                         }
-                    ) {
-                        Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
-                            Text(if (busy) "Logging in..." else "Login as Partner", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+
+                        Spacer(Modifier.height(16.dp))
+
+                        error?.let {
+                            Text(it, color = DriverColors.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = DriverColors.Primary,
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = !busy) {
+                                busy = true
+                                error = null
+                                scope.launch {
+                                    when (val r = DriverApi.login(phone, name, vehicleNumber)) {
+                                        is DriverResult.Ok -> {
+                                            busy = false
+                                            onLoginSuccess(r.value.first, r.value.second)
+                                        }
+                                        is DriverResult.Err -> {
+                                            busy = false
+                                            error = r.message
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
+                            Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                                Text(if (busy) "Logging in..." else "Verify OTP & Login →", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
                         }
                     }
                 }

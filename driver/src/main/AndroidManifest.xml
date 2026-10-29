@@ -14,11 +14,13 @@
         android:icon="@drawable/ic_launcher"
         android:label="JunkItOut Driver"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.JunkItOut">
 
         <activity
             android:name=".DriverActivity"
             android:exported="true"
+            android:theme="@style/Theme.JunkItOut"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

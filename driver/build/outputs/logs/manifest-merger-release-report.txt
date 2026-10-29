@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-29:12
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:2:1-31:12
 MERGED from [com.google.maps.android:maps-compose:4.4.1] /home/hanicharles/.gradle/caches/transforms-4/682b0e30a07ee243a911e8c1e4ddf65a/transformed/maps-compose-4.4.1/AndroidManifest.xml:17:1-22:12
 MERGED from [com.google.maps.android:maps-ktx:5.0.0] /home/hanicharles/.gradle/caches/transforms-4/97990325e0dfca8d346daa545443bf07/transformed/maps-ktx-5.0.0/AndroidManifest.xml:18:1-23:12
 MERGED from [com.google.android.gms:play-services-maps:18.2.0] /home/hanicharles/.gradle/caches/transforms-4/2d2dd44409cd9c598bd03db0197aac73/transformed/play-services-maps-18.2.0/AndroidManifest.xml:17:1-44:12
@@ -129,8 +129,8 @@ ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/An
 	android:name
 		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:10:19-57
 application
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:12:5-28:19
-INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:12:5-28:19
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:12:5-30:19
+INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:12:5-30:19
 MERGED from [com.google.android.gms:play-services-maps:18.2.0] /home/hanicharles/.gradle/caches/transforms-4/2d2dd44409cd9c598bd03db0197aac73/transformed/play-services-maps-18.2.0/AndroidManifest.xml:36:5-42:19
 MERGED from [com.google.android.gms:play-services-maps:18.2.0] /home/hanicharles/.gradle/caches/transforms-4/2d2dd44409cd9c598bd03db0197aac73/transformed/play-services-maps-18.2.0/AndroidManifest.xml:36:5-42:19
 MERGED from [com.google.android.gms:play-services-base:18.0.1] /home/hanicharles/.gradle/caches/transforms-4/843ec780b57ed6c96319a8f6ddd9c2d6/transformed/play-services-base-18.0.1/AndroidManifest.xml:19:5-23:19
@@ -163,26 +163,30 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /home/hanicharles/.gradle/c
 		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:14:9-45
 	android:allowBackup
 		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:13:9-36
+	android:theme
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:18:9-47
 	android:usesCleartextTraffic
 		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:17:9-44
 activity#com.junkitout.driver.DriverActivity
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:19:9-27:20
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:20:9-29:20
 	android:windowSoftInputMode
-		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:22:13-55
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:24:13-55
 	android:exported
-		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:21:13-36
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:22:13-36
+	android:theme
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:23:13-51
 	android:name
-		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:20:13-43
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:21:13-43
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:23:13-26:29
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:25:13-28:29
 action#android.intent.action.MAIN
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:24:17-69
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:26:17-69
 	android:name
-		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:24:25-66
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:26:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:25:17-77
+ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:27:17-77
 	android:name
-		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:25:27-74
+		ADDED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml:27:27-74
 uses-sdk
 INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /home/hanicharles/Documents/candroid/JunkItOut (2)/driver/src/main/AndroidManifest.xml
